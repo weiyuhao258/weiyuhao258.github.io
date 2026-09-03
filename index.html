@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="魏钰昊的个人主页，聚焦人形机器人、强化学习、机器人操作与视觉感知。" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://weiyuhao258.github.io/" />
+  <link rel="canonical" href="https://weiyuhao258.github.io/" />
+  <meta property="og:title" content="魏钰昊｜强化学习运动控制与机器人操作" />
+  <meta property="og:description" content="实习经历、研究论文、机器人项目与演示视频。" />
+  <title>魏钰昊｜个人主页</title>
+  <link rel="stylesheet" href="styles.css?v=image-dialog-3" />
+  <script src="script.js?v=image-dialog-3" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳至主要内容</a>
+  <header class="topbar">
+    <a class="logo" href="#home">魏钰昊</a>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="nav">菜单</button>
+    <nav id="nav">
+      <a href="#experience">实习</a><a href="#research">科研</a><a href="#projects">项目</a><a href="#education">教育</a><a href="#contact">联系</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="home">
+      <div class="hero-pattern" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="hello">你好 👋</p>
+        <h1>我是 <span>魏钰昊</span></h1>
+        <p class="role">强化学习运动控制 / 机器人操作 / 计算机视觉 / RoboMaster</p>
+        <p class="hero-summary">关注人形机器人全身运动、机器人操作与视觉感知，具备从训练、部署到实机联调的完整工程经验。</p>
+        <div class="hero-actions">
+          <a class="button primary" href="assets/profile/Wei_Yuhao_Resume.pdf" target="_blank" rel="noreferrer">查看简历</a>
+          <a class="button secondary" href="#projects">查看项目</a>
+        </div>
+      </div>
+      <div class="hero-contact"><a href="mailto:wyaho@163.com">wyaho@163.com</a><a href="tel:+8615122981756">151 2298 1756</a></div>
+    </section>
+
+    <section class="content-section tinted" id="experience">
+      <div class="section-title"><h2>实习经历</h2><span></span></div>
+      <div class="section-content timeline">
+        <article class="timeline-item">
+          <span class="timeline-dot"></span>
+          <div class="experience-card">
+            <div class="card-heading"><div><h3>强化学习运动控制（RL 运控岗）</h3><p>PNDbotics</p></div><time>2025 — 2026</time></div>
+            <div class="experience-block">
+              <h4>全身遥操作与运动重定向</h4>
+              <p>为了让人形机器人跟随操作者的动作，我基于 Mink 逆运动学工具，将 VR 设备采集的人体骨架运动转换为机器人全身关节目标。这一过程称为运动重定向，需要适应人体与机器人的尺寸和关节结构差异；逆运动学（IK）则用于从目标位置和姿态求解关节配置。我还修复了 ROS 2 异步消息处理中因访问顺序和时间不一致引起的问题，并完善 Pico 设备的离线数据采集、人体标定与预处理工具。</p>
+            </div>
+            <div class="experience-block">
+              <h4>基于强化学习的全身运动跟踪</h4>
+              <p>目标是让同一个控制模型跟踪多种参考动作，并适应遥操作设备的输入噪声。我基于 mjlab 搭建训练流程，参考 Humanoid-GPT，先将相似动作分组，为每组训练一个专门的控制策略，再通过 DAgger（数据集聚合）让统一模型学习这些策略给出的动作。分组采用 Humanoid-GPT 提出的 HME（Harmonic Motion Embedding）动作表示，用特征向量描述动作并比较相似程度。针对 Pico 等设备的噪声输入，结合 MOSAIC 的残差适配方法，在通用模型上学习额外的修正量。</p>
+            </div>
+            <div class="experience-block">
+              <h4>PPO 专家策略的参数复用与多 GPU 训练调度</h4>
+              <p>每个动作簇是一组相似动作，对应的专家策略是专门跟踪这组动作的控制模型。原训练流程为每个动作簇分别运行 PPO（近端策略优化，一种强化学习算法），从头训练专家策略。我尝试复用已训练模型的参数来初始化后续模型，这称为热启动（warm start）。对比实验中，在相同训练迭代次数下，从 HME 特征距离较近的动作簇初始化，通常能获得更高的跟踪成功率。</p>
+              <p>参数复用还需要协调训练顺序：后续模型只能使用已经训练完成的模型，而等待依赖又可能让 GPU 空闲。我将问题建模为带依赖约束的并行任务调度，在固定最少训练批次数的条件下，尽量选择 HME 距离较近的初始化来源，使用 CP-SAT 约束优化求解器联合决定首批任务、各任务的执行批次和参数来源。</p>
+              <details>
+                <summary>展开问题分析、建模与重规划</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>1. 同时考虑参数复用与 GPU 并行度</h5>
+                  <p>只为每个任务选择距离最近的模型，可能产生无法执行的顺序：该模型尚未完成训练，或者两个任务互相等待。因此，初始化来源与执行顺序必须一起考虑。一个成功训练的模型可以被所有更晚启动的任务复用，也可以用于初始化多个模型，无需将它们绑定到同一张 GPU。</p>
+                  <h5>2. 固定训练批次数，再优化初始化来源</h5>
+                  <p>模型将各专家策略的训练时长近似为相等，并采用同步分批调度，即一批任务全部结束后再启动下一批。对 N 个动作簇、G 张 GPU，每批最多安排 G 个任务，最少需要 T = ⌈N / G⌉ 批。在 96 个动作簇、8 张 GPU 的设置下，共安排 12 批，每批 8 个训练任务。</p>
+                  <p>批次数固定后，以初始化来源与目标动作簇之间的 HME 距离估计迁移难度，并最小化这些距离的总和。这样，哪些模型先训练、何时可被复用，以及后续模型从哪里初始化，都可以在同一个调度模型中优化。</p>
+                  <h5>3. 用 CP-SAT 求解执行批次与依赖关系</h5>
+                  <p>为每个动作簇 i 定义整数变量 w<sub>i</sub>，表示执行批次；布尔变量 x<sub>ij</sub> 表示任务 j 是否使用任务 i 的模型初始化，D<sub>ij</sub> 为两者的 HME 距离。第一批任务从头训练，其余任务必须选择一个已完成的模型作为初始化来源，在依赖图中称为父节点。第一批安排哪些动作簇也由求解器决定。</p>
+                  <div class="model-spec" aria-label="CP-SAT 调度模型">
+                    <div class="equation-row">
+                      <span class="equation-label">优化目标</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="最小化各模型与其初始化来源之间的 HME 距离总和">
+                          <mrow><mo movablelimits="true">min</mo><mspace width="0.4em" /><munder><mo>∑</mo><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow></munder><msub><mi>D</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">变量范围</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="每个动作簇的执行批次为 1 到 T，T 为 N 除以 G 向上取整；依赖变量取零或一">
+                          <mrow><msub><mi>w</mi><mi>i</mi></msub><mo>∈</mo><mo>{</mo><mn>1</mn><mo>,</mo><mo>…</mo><mo>,</mo><mi>T</mi><mo>}</mo><mo>,</mo><mspace width="0.6em" /><mi>T</mi><mo>=</mo><mrow><mo>⌈</mo><mfrac><mi>N</mi><mi>G</mi></mfrac><mo>⌉</mo></mrow><mo>,</mo><mspace width="0.6em" /><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∈</mo><mo>{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>}</mo></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">容量约束</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="对于每个批次 t，安排的动作簇数量不超过 G">
+                          <mrow><mo>|</mo><mo>{</mo><mi>i</mi><mo>:</mo><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mi>t</mi><mo>}</mo><mo>|</mo><mo>≤</mo><mi>G</mi><mo>,</mo><mspace width="0.6em" /><mo>∀</mo><mi>t</mi><mo>∈</mo><mo>{</mo><mn>1</mn><mo>,</mo><mo>…</mo><mo>,</mo><mi>T</mi><mo>}</mo></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">起点约束</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="第一批安排 G 个从头训练的任务">
+                          <mrow><mo>|</mo><mo>{</mo><mi>j</mi><mo>:</mo><msub><mi>w</mi><mi>j</mi></msub><mo>=</mo><mn>1</mn><mo>}</mo><mo>|</mo><mo>=</mo><mi>G</mi></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">父节点约束</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="第一批动作簇没有初始化来源，其余动作簇恰好有一个初始化来源">
+                          <mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow></munder><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mrow><mo stretchy="true">{</mo><mtable columnalign="left left" columnspacing="1.2em" rowspacing="0.5em"><mtr><mtd><mn>0</mn><mo>,</mo></mtd><mtd><msub><mi>w</mi><mi>j</mi></msub><mo>=</mo><mn>1</mn></mtd></mtr><mtr><mtd><mn>1</mn><mo>,</mo></mtd><mtd><msub><mi>w</mi><mi>j</mi></msub><mo>&gt;</mo><mn>1</mn></mtd></mtr></mtable></mrow></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">依赖约束</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="若 j 从 i 初始化，则 i 的训练批次必须早于 j">
+                          <mrow><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>1</mn><mo>⇒</mo><msub><mi>w</mi><mi>i</mi></msub><mo>&lt;</mo><msub><mi>w</mi><mi>j</mi></msub></mrow>
+                        </math>
+                      </div>
+                    </div>
+                  </div>
+                  <p>容量约束限制每批任务的数量；依赖约束要求初始化来源先于当前任务完成，排除循环等待。CP-SAT 同时搜索首批任务、执行批次与依赖关系，避免先固定初始化来源后才发现 GPU 无法充分并行。</p>
+                  <h5>4. 训练失败后，对剩余任务重新建模</h5>
+                  <p>初始规划假定各任务训练完成后都能提供可用模型。如果某个模型因表现过差被弃用，就需要调整依赖它的后续任务。将任务分为已成功集合 S、已弃用集合 D 和未训练集合 U：保留 S 的模型，排除 D，并允许 U 中的任务从 S 或后续更早完成的任务中选择初始化来源。</p>
+                  <p>每批结束后，若还剩 R 个待训练任务，就以 K = ⌈R / G⌉ 作为剩余批次数上限，重新求解任务分配与依赖关系。已经成功的模型不再占用后续 GPU 资源，可以直接用于初始化，使剩余训练继续复用已有成果。</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-section" id="research">
+      <div class="section-title"><h2>科研经历</h2><span></span></div>
+      <div class="section-content project-list">
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">01</span>
+            <strong>面向机器人操作的技能级数据增广方法</strong>
+            <span class="project-meta">论文 · 共同一作 · 《软件学报》已录用</span>
+            <span class="project-brief">每个任务仅用一条人工操作示范，生成纠错与物体形状变化样本，改善机器人操作成功率。</span>
+            <img class="project-thumb" src="assets/skill-augmentation/jos-overview-hd.png" alt="技能级数据增广项目配图" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/skill-augmentation/jos-overview-hd.png" aria-label="查看技能级数据增广框架高清图（当前页面放大）">
+              <img class="project-image" src="assets/skill-augmentation/jos-overview-hd.png" alt="技能级数据增广框架" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <h4>研究问题：示范很少时，如何学会纠错并适应新物体？</h4>
+            <p>机器人模仿学习需要人工示教，即记录人控制机器人完成任务时的观测和动作，再训练模型根据观测生成动作。真实示教采集成本高，而只有成功示范时，模型可能学不会如何纠正执行偏差，也难以适应形状不同的新物体。本研究通过编辑已有示教生成更多训练样本，这一过程称为数据增广。</p>
+            <p>论文将操作轨迹分为接触前的“运动规划阶段”和接触后的“完成技能阶段”，例如先接近杯子，再抓住杯子完成倾倒。“技能级增广”指针对后一阶段及其起始状态生成训练样本，重点补充偏离后的恢复动作，以及物体形状发生变化的观测。</p>
+            <h4>方法设计：补充恢复轨迹，改变物体非接触区域的形状</h4>
+            <p>论文中的“失败恢复增广”通过编辑点云（表示物体表面的三维采样点）和机械臂状态，模拟开始接触物体时的位置、朝向偏差或视野遮挡，再生成回到正常操作起点的轨迹，并接续原有操作。生成的样本让模型学习从偏离状态恢复后继续完成任务。</p>
+            <p>另一种方法称为“接触保持扰动”：保留机器人与物体接触区域的形状，只对其余区域进行拉宽、增高或表面形变。例如，用夹爪抓杯把时，保持杯把的接触形状，改变杯身形状。这样可以增加训练物体的外形变化，同时保留原示教中的接触几何关系。</p>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/skill-augmentation/jos-method-hd.png" aria-label="查看失败恢复与接触保持扰动高清图（当前页面放大）">
+              <img class="project-image" src="assets/skill-augmentation/jos-method-hd.png" alt="失败恢复轨迹与接触保持扰动方法示意" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <h4>实验验证与效果</h4>
+            <p>实验以每个任务一条真实示教为起点，使用增广数据训练根据点云生成动作的 DP3 策略，并在 Franka 机械臂上验证擦拭、倾倒、抓取等真实操作任务。相比仅改变物体位置和接近路径的增广方式，加入技能级增广提高了操作成功率，并改善了对新物体和执行偏差的适应能力。</p>
+            <p>失败恢复实验中，机器人学会了先纠正异常状态，再继续操作。例如，当机械臂自身遮挡摄像头、使目标物体从视野中消失时，机械臂会主动抬起，让摄像头重新看到物体，然后继续完成任务；当末端位置发生偏移时，也能回到可继续操作的位置。这些行为体现了从失败状态中恢复的能力，下方视频展示了相应的实机过程。</p>
+            <div class="video-grid three"><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-1.mp4"></video><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-2.mp4"></video><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-3.mp4"></video></div>
+            <span class="coming-soon">论文链接 · Coming Soon</span>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">02</span>
+            <strong>CLIP-Based Few-Shot Recognition for Robotic Perception via Multi-Scale Semantic Injection and Consistency Regularization</strong>
+            <span class="project-meta">论文 · 主要负责 · 在投</span>
+            <span class="project-brief">面向每类仅有少量标注图像的分类任务，融合多层图像特征，并用类别文本辅助学习。</span>
+            <img class="project-thumb" src="assets/clip-recognition/clip-layer-attention.png" alt="CLIP 少样本识别项目配图" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <h4>研究动机：CLIP 不同网络层保留的信息并不相同</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-layer-attention.png" aria-label="查看 CLIP 不同层注意力对比高清图（当前页面放大）">
+              <img class="project-image" src="assets/clip-recognition/clip-layer-attention.png" alt="浅层与深层 CLIP 特征的注意力对比" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <p>CLIP 通过图像与文字配对训练，将视觉内容和语言概念映射到同一特征空间。它的视觉编码器逐层处理图像：较浅和中间层保留较多局部结构、形状和空间位置，较深层更侧重类别语义，但空间信息会逐渐变粗。常见的 CLIP 少样本分类方法只使用最后一层特征，可能因此遗漏区分相似类别所需的局部细节。</p>
+            <p>上图比较了四类图像在不同网络深度上的注意力响应。较浅层的高响应区域集中在螺钉、锤子、熨斗和摩卡壶等目标本身，能较清楚地保留物体位置与轮廓；较深层的响应更分散，部分注意力落在背景或与目标无关的位置。这说明不同层提取的特征具有互补性，分类时需要同时利用中间层的局部证据和深层的语义信息，而不能只依赖最终输出。</p>
+            <h4>方法设计：用类别文本引导特征提取，融合不同层的图像信息</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-framework.png" aria-label="查看 CLIP 方法框架高清图（当前页面放大）">
+              <img class="project-image" src="assets/clip-recognition/clip-framework.png" alt="多尺度语义注入与语义一致性正则化框架" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <p>Multi-Scale Semantic Injection（MSI，多尺度语义注入）从冻结的 CLIP 视觉编码器中选取多个中间层输出。对于每一层，先将类别名称经过 CLIP 文本编码器得到文本特征，再把文本 token 与该层的图像 patch token 一起送入共享的 Transformer，使图像特征获得当前分类任务的类别提示。</p>
+            <p>语义注入后，以包含类别信息的全局 token 作为查询，通过交叉注意力从各个局部 patch 中选择与类别最相关的区域，得到每层的图像表示。最后，注意力池化模块学习不同层的权重，将局部空间细节与深层语义汇总为最终特征，并通过它与各类别原型之间的距离完成少样本分类。</p>
+            <p>训练时，带标签的参考图像可以使用真实类别名称，待分类图像却没有真实标签，直接依赖文本会造成两类特征不一致。Semantic Consistency Regularization（SCR，语义一致性正则化）对同一图像分别执行有文本提示和无文本提示的前向计算：一方面随机关闭部分文本提示，让模型同时适应两种输入；另一方面约束两条分支得到的特征保持接近。这样既能在训练时利用类别文本，又能让模型在只有图像输入时保持稳定。</p>
+            <h4>实验验证与图示分析</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-analysis.png" aria-label="查看 CLIP 注意力响应与聚合贡献高清图（当前页面放大）">
+              <img class="project-image" src="assets/clip-recognition/clip-analysis.png" alt="不同视觉层的注意力响应与聚合贡献" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <p>实验在 MiniImageNet、TieredImageNet 与 CUB 三个图像分类数据集上进行，采用 5-way 1-shot 和 5-way 5-shot 设置：每次从五个类别中分类，每类分别提供一张或五张标注图像。与已有少样本学习和 CLIP 适配方法的对比表明，该方法在通用类别与细粒度类别数据集上均取得有竞争力的分类准确率。</p>
+            <p>上图左侧给出了文本提示为“keyboard”时，CLIP 第 6、8、10、12 层的注意力图。第 6、8 层响应较分散，第 10 层开始形成更集中的键盘区域，第 12 层提供更抽象的类别响应，说明局部证据与语义信息分布在不同深度。右侧热力图展示 16 个注意力头对四个层级特征的聚合权重：多数注意力头同时使用多个层级，并对第 10、12 层赋予较高权重，表明模型没有固定依赖某一个网络层，而是在不同深度之间选择互补信息。</p>
+            <p>消融实验进一步分别移除多层特征、交叉注意力、随机语义注入和特征一致性损失。多层特征与交叉注意力同时启用时分类效果最好；随机关闭文本提示与显式特征对齐共同使用时，也优于移除其中任一项的设置。这说明 MSI 主要改善局部判别信息的提取，SCR 则缓解参考图像使用文本、待分类图像仅有视觉输入造成的特征差异。</p>
+            <span class="coming-soon">论文链接 · Coming Soon</span>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <section class="content-section" id="projects">
+      <div class="section-title"><h2>个人项目</h2><span></span></div>
+      <div class="section-content project-list">
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">03</span>
+            <strong>远距离目标三维定位与瞄准控制</strong>
+            <span class="project-meta">RoboMaster 2026</span>
+            <span class="project-brief">融合相机与激光雷达定位目标，结合落点反馈和姿态补偿修正瞄准，完成实机联调。</span>
+            <img class="project-thumb" src="assets/remote-aiming/rm-robot.jpg" alt="搭载远程吊射观瞄系统的机器人" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <h4>问题：单目视觉难以满足 20 m 以上的定位精度</h4>
+            <p>项目用于 RoboMaster 机器人对抗赛中的远距离吊射任务。目标距离超过 20 m 后，基于 PnP 的单目视觉定位容易因目标在图像中尺寸较小、角点误差被距离放大而产生较大的深度误差，难以达到后续弹道计算所需的定位精度。因此引入激光雷达，与相机联合标定后使用点云提供更准确的目标距离与三维位置，再据此计算弹道和云台控制指令。</p>
+            <h4>观瞄硬件</h4>
+            <img class="project-image" src="assets/remote-aiming/rm-camera-rig-detail.png" alt="工业相机、50 mm 镜头、Livox Mid-70 与激光测距仪的硬件标注" loading="lazy" />
+            <h4>方法：相机与雷达联合定位，反馈修正瞄准方向</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/remote-aiming/flowchart_high_res.png" aria-label="查看远程吊射观瞄系统高清流程图（当前页面放大）">
+              <img class="project-image" src="assets/remote-aiming/flowchart_high_res.png" alt="远程吊射观瞄系统流程：相机检测、点云定位、弹丸校准和云台补偿" loading="lazy" />
+              <span>点击查看高清大图 ↗</span>
+            </button>
+            <p>首先使用 ROS2_CALIB 标定相机与 Livox Mid-70 激光雷达之间的位置和朝向关系。运行时将 YOLO 检测到的目标框投影到雷达点云，在对应区域内通过聚类和滤波去除离群点，再根据有效点云估计目标的水平距离、垂直距离和三维位置。弹道解算根据目标位置计算所需的俯仰角与水平偏角，并生成二轴云台的控制指令。</p>
+            <p>针对弹丸误检和漏检，使用单目标跟踪关联连续画面中的同一颗弹丸，并依据观测轨迹和落点修正瞄准点。底盘倾斜时，利用惯性测量单元（IMU）提供的姿态信息，结合二轴云台运动学进行坐标变换，使水平转向与俯仰指令仍以地面为参考。</p>
+            <h4>结果：完成目标定位、反馈修正与姿态补偿的实机联调</h4>
+            <p>系统已完成传感器标定、三维定位、云台控制、弹丸跟踪与姿态补偿的集成和实机测试。测试中使用独立激光测距仪作为距离参考，核对定位中的测距结果。下方视频展示机器人上的观测与控制过程。</p>
+            <video class="project-video" controls playsinline preload="metadata" poster="assets/remote-aiming/rm-range-test.png" src="assets/remote-aiming/demo-4.mp4"></video>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">04</span>
+            <strong>低带宽图像传输与神经网络压缩</strong>
+            <span class="project-meta">RoboMaster 2026</span>
+            <span class="project-brief">将 192 × 192 图像压缩至每帧 560 B 以内传输，并通过推理加速与超分辨率重建支持落点观测。</span>
+            <img class="project-thumb" src="assets/video-compression/compress-result.png" alt="低码率吊射图传项目配图" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <h4>问题：严格控制单帧大小，并在有限算力和电池供电下实时运行</h4>
+            <p>通信协议留给每帧图像的数据只有约 560 B，任何一帧超出预算都无法直接发送。CompressAI 的 mbt2018_mean 预训练模型采用固定压缩配置，不支持实时可变码率控制，也不能严格保证不同复杂度的画面都落在单帧预算内，直接用于比赛存在超长码流的风险。为此，在该模型上加入基于 QVRF 的码率调节与超预算重试机制，使码流能够随画面复杂度动态变化。</p>
+            <p>算力和供电同样受限：机载发送端运行在 NUC12 上，接收端使用只能依靠笔记本电池供电的 NVIDIA GPU 笔记本。系统需要在两端持续完成神经网络推理、熵编码和图像后处理，因此除了控制码率，还要提升推理效率、降低运行开销。</p>
+            <h4>压缩方法：通过特征量化与反馈调节控制每帧码流</h4>
+            <p><strong>图像特征与统计信息。</strong>发送端将 192 × 192 RGB 图像输入分析网络 g<sub>a</sub>，得到用于重建图像的低维特征 y。特征数量虽然减少了，但直接发送浮点数仍然太大，因此还需要量化和熵编码。超先验网络 h<sub>a</sub> 将 y 进一步转换为紧凑的辅助特征 z；对 z 量化并解码后，通过 h<sub>s</sub> 预测 y 中各元素的均值与尺度，即数值的中心和分散程度，为后续编码提供概率模型。</p>
+            <p><strong>量化与熵编码。</strong>先从 y 中减去预测均值，再乘以增益系数 gain 并取整，得到待编码的整数符号。gain 较小时，更多相近数值会被归为同一个符号，压缩后的字节数减少，但部分图像细节也会丢失。随后根据预测尺度选择概率表，使用 rANS 熵编码将符号序列写成紧凑字节流；常见符号消耗的编码位数更少。发送内容包括主特征 y 的码流、辅助特征 z 的码流，以及解码所需的增益等信息。</p>
+            <p><strong>逐帧反馈与超预算处理。</strong>根据上一帧实际字节数占 560 B 预算的比例调整下一帧 gain：剩余空间较多时提高增益以保留细节，接近上限时降低增益。如果当前帧超出预算，则进一步降低 gain 重新编码；多次尝试后仍超限时发送 OVER 标记，接收端保留上一帧画面，避免向链路提交超长图像数据。</p>
+            <p><strong>接收端重建。</strong>先解码 z，并通过 h<sub>s</sub> 恢复与发送端一致的均值和尺度，再用相同的概率表解码 y 的整数符号。将符号除以 gain、加回均值后得到重建特征，送入解码网络 g<sub>s</sub> 生成图像，再用 RLFN ×2 超分辨率网络输出更高分辨率的画面。辅助特征 z 使两端能够重建同一套统计信息，无需直接传输体积更大的均值与尺度数组。压缩原理、码率反馈和异常处理的详细实现见 <a class="text-link" href="https://github.com/ElainaXD/rm_compress#具体实现" target="_blank" rel="noreferrer">项目技术文档 ↗</a>。</p>
+            <h4>推理优化：按发送端与接收端的数据流减少额外开销</h4>
+            <p>发送端使用 NUC12 的集成显卡与 OpenVINO 加速 g<sub>a</sub>，并通过 PrePostProcessor 将 BGR uint8 输入、图像缩放、RGB 转换和归一化合入推理图，避免单独在 CPU 上预处理。概率表索引查找使用 NumPy searchsorted 替代 CompressAI 原有的 build_indexes 搜索过程，减少熵编码前的索引构造开销。</p>
+            <p>接收端将解码网络 g<sub>s</sub> 与 RLFN ×2 超分辨率网络融合成一个 TensorRT engine，中间特征无需返回 CPU，直接输出 384 × 384 图像；再使用 CuPy 在 GPU 上完成 NCHW FP32 到 HWC uint8 的格式转换。熵编码相关模块对数值一致性敏感，跨设备误差可能造成编码端和解码端概率表不一致，因此这部分保留在 CPU。</p>
+            <h4>结果：完成低带宽实时传输，实测可用于落点判断</h4>
+            <p>系统将 192 × 192 RGB 图像的压缩数据控制在每帧 560 B 以内。仓库记录的实现支持 24 FPS 传输，并在接收端输出 384 × 384 图像；实测重建画面可用于判断弹丸落点、辅助瞄准修正。</p>
+            <p><strong>下方视频右下角的画面，是最终使用时操作手看到的效果</strong>，即经过压缩、传输、解码和超分辨率重建后，用于观察目标与弹丸落点的画面。</p>
+            <video class="project-video" controls playsinline preload="metadata" poster="assets/video-compression/compress-landing.png" src="assets/video-compression/demo-5.mp4"></video>
+            <a class="external-link" href="https://github.com/ElainaXD/rm_compress" target="_blank" rel="noreferrer">GitHub 仓库 ↗</a>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">05</span>
+            <strong>基于 YOLO 的目标检测与实时自动瞄准</strong>
+            <span class="project-meta">RoboMaster 2025</span>
+            <span class="project-brief">完成检测模型训练与 Orin NX 部署，通过多线程流水线将实测处理帧率从 90 提升至 150 FPS。</span>
+            <img class="project-thumb" src="assets/auto-aim/yolo-dataset.jpg" alt="YOLO 自瞄项目配图" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <h4>能量机关目标检测与模型部署</h4>
+            <p>完成“能量机关”（比赛中的旋转靶标）的图像采集、数据清理、目标标注、YOLO 模型训练和 TensorRT 部署，在 NVIDIA Orin NX 上运行目标检测。比赛规则临时移除装置外边框后，根据装置已知尺寸，使用 OpenCV 遮盖旧图像中的边框，修正训练数据与赛场外观的差异，使已有数据得以复用；更新后的模型完成赛场应用。</p>
+            <h4>自动瞄准系统的多线程流水线优化</h4>
+            <p>将取图、预处理、推理、后处理、卡尔曼滤波观测、云台控制和发射控制拆分为独立任务线程，通过生产者—消费者模式传递数据，并使用条件变量在数据就绪时同步线程，减少各阶段之间的阻塞等待。针对推理瓶颈配置多个并行推理线程，使不同帧的处理过程可以重叠执行。</p>
+            <figure class="project-flow">
+              <button type="button" aria-haspopup="dialog" data-image-src="assets/auto-aim/diagram.png" aria-label="查看自瞄多线程推理流水线原图（当前页面放大）">
+                <img src="assets/auto-aim/diagram.png" alt="自瞄多线程流水线：相机取图和预处理后，进入装甲板或能量机关的多线程推理任务，再衔接后处理、卡尔曼滤波观测、云台与发射控制；各任务通过条件变量同步。" width="937" height="900" loading="lazy" />
+              </button>
+              <figcaption>自瞄多线程推理流水线 · 点击查看原图</figcaption>
+            </figure>
+            <p>在项目测试条件下，多线程优化后系统每秒处理的图像帧数由 90 增加到 150，体现了流水线整体吞吐量的提升。以下两段视频展示自动瞄准系统的实机运行。</p>
+            <div class="video-grid two"><video controls playsinline preload="metadata" src="assets/auto-aim/demo-6.mp4"></video><video controls playsinline preload="metadata" src="assets/auto-aim/demo-7.mp4"></video></div>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">06</span>
+            <strong>移动机器人底盘控制与功率限制</strong>
+            <span class="project-meta">RoboMaster 2023—2024</span>
+            <span class="project-brief">为两类全向移动底盘开发模块化控制框架，利用实车数据拟合功率模型，动态限制电机输出。</span>
+            <img class="project-thumb" src="assets/chassis-control/infantry.jpg" alt="使用全向轮底盘的步兵机器人" loading="lazy" />
+            <span class="expand-label">查看详情</span>
+          </summary>
+          <div class="project-detail">
+            <h4>底盘嵌入式控制框架</h4>
+            <p>开发适用于全向轮与麦克纳姆轮底盘的嵌入式控制框架，将外设通信、状态观测和控制逻辑拆分为独立模块，减少控制算法与具体硬件通信方式之间的耦合。通信适配、状态观测与控制参数可以分别修改，便于在不同底盘上复用和继续开发。</p>
+            <h4>电机功率建模</h4>
+            <p>采集实车在不同转速与负载下的电机转速、电流和功率数据，拟合电机功率估计模型。运行时根据各电机状态估计底盘总功率，再动态限制电机目标输出，使功率控制能够随当前运行状态调整，而不是采用固定输出限幅。</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="content-section tinted" id="education">
+      <div class="section-title"><h2>教育经历</h2><span></span></div>
+      <div class="section-content"><article class="education-card"><div><h3>人工智能专业 · 本科</h3><p>东南大学</p></div><time>2023 — 2027</time></article></div>
+    </section>
+
+  </main>
+
+  <footer id="contact">
+    <div><h2>魏钰昊</h2></div>
+    <div class="footer-links"><a href="mailto:wyaho@163.com">wyaho@163.com</a><a href="tel:+8615122981756">151 2298 1756</a><a href="#home">返回顶部 ↑</a></div>
+    <p class="copyright">© <span data-year></span> 魏钰昊</p>
+  </footer>
+</body>
+</html>

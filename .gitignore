@@ -1,0 +1,10 @@
+# Local source material and extraction intermediates
+reference/
+tmp/
+_site/
+*.pptx
+assets/remote-aiming/archive/
+
+# OS files
+.DS_Store
+Thumbs.db
