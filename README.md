@@ -7,7 +7,7 @@
 - PPO Cluster Experts 训练调度专题
 - 两项论文研究（论文链接暂标记为 Coming Soon）
 - RoboMaster 比赛项目与演示视频
-- 简历入口
+- 实习经历、科研经历与个人项目快捷导航
 
 ## 本地预览
 

@@ -31,6 +31,7 @@ nav a:hover, nav a.active { color: var(--accent); }
 .role { margin: 0; color: #4b5563; font: 600 clamp(18px, 2.2vw, 27px)/1.5 var(--mono); }
 .hero-summary { max-width: 680px; margin: 25px 0 0; color: var(--muted); font-size: 18px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.hero-actions .button { min-width: 120px; text-align: center; }
 .button { padding: 11px 18px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-weight: 650; transition: transform .2s, box-shadow .2s; }
 .button:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(17,24,39,.08); }
 .button.primary { color: white; background: var(--accent); border-color: var(--accent); }
@@ -181,6 +182,8 @@ footer p { margin: 5px 0 0; color: var(--muted); }
   .hero { min-height: 85vh; padding: 120px 22px 85px; }
   .hero h1 { font-size: clamp(50px, 16vw, 76px); }
   .hero-summary { font-size: 16px; }
+  .hero-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .hero-actions .button { min-width: 0; padding-inline: 8px; }
   .hero-contact { left: 22px; bottom: 24px; }
   .model-spec { padding-inline: 14px; }
   .equation-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
