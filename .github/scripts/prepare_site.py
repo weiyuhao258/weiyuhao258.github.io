@@ -11,7 +11,7 @@ OUTPUT = ROOT / "_site"
 class SiteReferences(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.files = {"index.html", ".nojekyll"}
+        self.files = {"index.html", "en.html", ".nojekyll"}
 
     def handle_starttag(self, tag, attributes):
         for key, value in attributes:
@@ -29,7 +29,8 @@ class SiteReferences(HTMLParser):
 
 def site_files():
     parser = SiteReferences()
-    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    for page in ("index.html", "en.html"):
+        parser.feed((ROOT / page).read_text(encoding="utf-8"))
     return sorted(parser.files)
 
 

@@ -2,6 +2,38 @@ const header = document.querySelector('.topbar');
 const menuButton = document.querySelector('.menu-button');
 const nav = document.querySelector('#nav');
 const navLinks = [...document.querySelectorAll('#nav a')];
+const isEnglish = document.documentElement.lang === 'en';
+const viewerText = isEnglish ? {
+  title: 'Image Preview',
+  close: 'Close image preview',
+  hint: 'Scroll to zoom · Drag to pan · Click to exit · Esc to close',
+  image: 'Enlarged project image',
+  enlarge: 'click to enlarge',
+} : {
+  title: '图片预览',
+  close: '关闭图片预览',
+  hint: '滚轮缩放 · 按住左键平移 · 单击图片或空白处退出 · Esc 关闭',
+  image: '放大的项目图片',
+  enlarge: '点击放大',
+};
+
+// Keep the current section when following a language link, including in a new tab.
+const languageLinks = [...document.querySelectorAll('[data-language]')];
+const pageSections = [...document.querySelectorAll('main section[id], footer[id]')];
+const setLanguageSection = (id) => {
+  languageLinks.forEach((link) => { link.hash = id && id !== 'home' ? id : ''; });
+};
+const updateLanguageLinks = () => {
+  const section = pageSections.filter((item) => item.getBoundingClientRect().top <= window.innerHeight * 0.4).at(-1);
+  setLanguageSection(section?.id);
+};
+window.addEventListener('scroll', updateLanguageLinks, { passive: true });
+window.addEventListener('pageshow', () => {
+  const target = pageSections.find((section) => `#${section.id}` === window.location.hash);
+  if (target) setLanguageSection(target.id);
+  else updateLanguageLinks();
+});
+setLanguageSection(pageSections.find((section) => `#${section.id}` === window.location.hash)?.id);
 
 window.addEventListener('scroll', () => header.classList.toggle('scrolled', window.scrollY > 16), { passive: true });
 menuButton.addEventListener('click', () => {
@@ -30,16 +62,16 @@ viewer.className = 'image-viewer';
 viewer.setAttribute('aria-labelledby', 'image-viewer-title');
 viewer.innerHTML = `
   <div class="image-viewer-header">
-    <span id="image-viewer-title">图片预览</span>
+    <span id="image-viewer-title">${viewerText.title}</span>
     <span class="image-viewer-scale">100%</span>
-    <button type="button" class="image-viewer-close" aria-label="关闭图片预览" autofocus>
+    <button type="button" class="image-viewer-close" aria-label="${viewerText.close}" autofocus>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" /></svg>
     </button>
   </div>
   <div class="image-viewer-stage">
     <img class="image-viewer-image" alt="" draggable="false" />
   </div>
-  <p class="image-viewer-hint">滚轮缩放 · 按住左键平移 · 单击图片或空白处退出 · Esc 关闭</p>
+  <p class="image-viewer-hint">${viewerText.hint}</p>
 `;
 document.body.append(viewer);
 
@@ -61,7 +93,7 @@ const openViewer = (src, alt, trigger) => {
   viewerState.y = 0;
   viewerState.trigger = trigger;
   viewerImage.src = src;
-  viewerImage.alt = alt || '放大的项目图片';
+  viewerImage.alt = alt || viewerText.image;
   renderViewerTransform();
   document.body.classList.add('viewer-open');
   viewer.showModal();
@@ -96,7 +128,7 @@ document.querySelectorAll('.project-detail > .project-image').forEach((image) =>
   image.classList.add('zoomable-image');
   image.tabIndex = 0;
   image.setAttribute('role', 'button');
-  image.setAttribute('aria-label', `${image.alt || '项目图片'}，点击放大`);
+  image.setAttribute('aria-label', `${image.alt || viewerText.image}, ${viewerText.enlarge}`);
   const open = () => openViewer(image.currentSrc || image.src, image.alt, image);
   image.addEventListener('click', open);
   image.addEventListener('keydown', (event) => {

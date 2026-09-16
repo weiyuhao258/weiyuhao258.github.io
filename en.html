@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Yuhao Wei's portfolio, focused on humanoid robotics, reinforcement learning, robotic manipulation, and visual perception." />
+  <meta name="theme-color" content="#2563eb" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://weiyuhao258.github.io/en.html" />
+  <link rel="canonical" href="https://weiyuhao258.github.io/en.html" />
+  <link rel="alternate" hreflang="zh-CN" href="https://weiyuhao258.github.io/" />
+  <link rel="alternate" hreflang="en" href="https://weiyuhao258.github.io/en.html" />
+  <link rel="alternate" hreflang="x-default" href="https://weiyuhao258.github.io/" />
+  <meta property="og:title" content="Yuhao Wei | RL Motion Control and Robotic Manipulation" />
+  <meta property="og:description" content="Internship experience, research papers, robotics projects, and demonstration videos." />
+  <title>Yuhao Wei | Personal Portfolio</title>
+  <link rel="stylesheet" href="styles.css?v=bilingual-1" />
+  <script src="script.js?v=bilingual-1" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="topbar">
+    <a class="logo" href="#home">Yuhao Wei</a>
+    <div class="header-controls">
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+      <nav id="nav" aria-label="Main navigation">
+        <a href="#experience">Experience</a><a href="#research">Research</a><a href="#projects">Projects</a><a href="#education">Education</a><a href="#contact">Contact</a>
+      </nav>
+      <div class="language-switch" role="group" aria-label="Language">
+        <a href="index.html" lang="zh-CN" hreflang="zh-CN" data-language="zh-CN" aria-label="切换到中文">中文</a>
+        <a href="en.html" lang="en" hreflang="en" data-language="en" aria-current="true" aria-label="Switch to English">EN</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="home">
+      <div class="hero-pattern" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="hello">Hello 👋</p>
+        <h1>I'm <span>Yuhao Wei</span></h1>
+        <p class="role">RL Motion Control / Robotic Manipulation / Computer Vision / RoboMaster</p>
+        <p class="hero-summary">Focused on humanoid whole-body motion, robotic manipulation, and visual perception, with hands-on experience spanning training, deployment, and integration on real robots.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#experience">Internships</a>
+          <a class="button secondary" href="#research">Research</a>
+          <a class="button secondary" href="#projects">Projects</a>
+        </div>
+      </div>
+      <div class="hero-contact"><a href="mailto:wyaho@163.com">wyaho@163.com</a><a href="tel:+8615122981756">151 2298 1756</a></div>
+    </section>
+
+    <section class="content-section tinted" id="experience">
+      <div class="section-title"><h2>Internship Experience</h2><span></span></div>
+      <div class="section-content timeline">
+        <article class="timeline-item">
+          <span class="timeline-dot"></span>
+          <div class="experience-card">
+            <div class="card-heading"><div><h3>Reinforcement Learning for Motion Control</h3><p>PNDbotics</p></div><time>Jul 2026 – Present</time></div>
+            <div class="experience-block">
+              <h4>Whole-Body Teleoperation and Motion Retargeting</h4>
+              <p>To make a humanoid robot follow a human operator, I used the Mink inverse kinematics toolkit to convert human skeletal motion captured by VR devices into whole-body joint targets. This process, called motion retargeting, accounts for differences in body proportions and joint structures between humans and robots. Inverse kinematics (IK) computes joint configurations from target positions and orientations. I also resolved ordering and timing issues in asynchronous ROS 2 message processing and improved offline data collection, human-body calibration, and preprocessing tools for Pico devices.</p>
+            </div>
+            <div class="experience-block">
+              <h4>Reinforcement Learning for Whole-Body Motion Tracking</h4>
+              <p>The goal is to train a single control model that tracks diverse reference motions and tolerates noisy teleoperation inputs. I built a training pipeline with mjlab, following the Humanoid-GPT approach: group similar motions, train a specialized control policy for each group, and use DAgger (Dataset Aggregation) to teach a unified model to imitate those policies. Motion grouping uses the Harmonic Motion Embedding (HME) proposed in Humanoid-GPT to represent motions as feature vectors and measure similarity. To handle input noise from devices such as Pico, I incorporated residual adaptation from MOSAIC to learn additional corrections on top of the general policy.</p>
+            </div>
+            <div class="experience-block">
+              <h4>Parameter Reuse and Multi-GPU Scheduling for PPO Experts</h4>
+              <p>Each motion cluster contains similar motions, and its expert policy specializes in tracking them. The original pipeline trained every expert from scratch with PPO (Proximal Policy Optimization, a reinforcement learning algorithm). I explored warm starts: initializing new experts with parameters from previously trained models. In comparative experiments with the same number of training iterations, initialization from clusters closer in HME space generally achieved higher tracking success rates.</p>
+              <p>Parameter reuse also requires coordinating the training order. A model can only reuse parameters from completed models, while waiting for dependencies can leave GPUs idle. I formulated this as parallel task scheduling with dependency constraints. With the minimum number of training batches fixed, a CP-SAT constraint optimization solver jointly selects the first batch, each task's execution batch, and its initialization source, favoring sources that are close in HME space.</p>
+              <details>
+                <summary>Problem Analysis and Modeling Details</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>1. Jointly Consider Parameter Reuse and GPU Parallelism</h5>
+                  <p>Choosing the nearest model for every task independently can produce an infeasible schedule: the source model may not have finished training, or two tasks may wait on each other. Initialization sources and execution order must therefore be planned together. A successfully trained model can initialize any number of tasks that start later; they do not need to run on the same GPU.</p>
+                  <h5>2. Fix the Batch Count, Then Optimize Initialization Sources</h5>
+                  <p>The model approximates expert training times as equal and uses synchronous batches: each batch finishes before the next begins. For N motion clusters and G GPUs, at most G tasks fit in each batch, requiring at least T = ⌈N / G⌉ batches. With 96 clusters and 8 GPUs, this gives 12 batches of 8 training tasks.</p>
+                  <p>Once the batch count is fixed, the HME distance between an initialization source and a target cluster serves as a proxy for transfer difficulty. Minimizing the sum of these distances jointly optimizes which models train first, when they become available for reuse, and where later models obtain their initial parameters.</p>
+                  <h5>3. Solve Batch Assignments and Dependencies with CP-SAT</h5>
+                  <p>For each motion cluster i, an integer variable w<sub>i</sub> specifies its execution batch. A Boolean variable x<sub>ij</sub> indicates whether task j is initialized from task i, and D<sub>ij</sub> is their HME distance. Tasks in the first batch train from scratch; every other task must select one completed model as its initialization source, or parent in the dependency graph. The solver also chooses which clusters enter the first batch.</p>
+                  <div class="model-spec" aria-label="CP-SAT scheduling model">
+                    <div class="equation-row">
+                      <span class="equation-label">Objective</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Minimize the total HME distance between models and their initialization sources">
+                          <mrow><mo movablelimits="true">min</mo><mspace width="0.4em" /><munder><mo>∑</mo><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow></munder><msub><mi>D</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">Variable Domains</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Each cluster runs in batch 1 through T, where T is N divided by G rounded up; dependency variables are binary">
+                          <mrow><msub><mi>w</mi><mi>i</mi></msub><mo>∈</mo><mo>{</mo><mn>1</mn><mo>,</mo><mo>…</mo><mo>,</mo><mi>T</mi><mo>}</mo><mo>,</mo><mspace width="0.6em" /><mi>T</mi><mo>=</mo><mrow><mo>⌈</mo><mfrac><mi>N</mi><mi>G</mi></mfrac><mo>⌉</mo></mrow><mo>,</mo><mspace width="0.6em" /><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>∈</mo><mo>{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>}</mo></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">Capacity</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Each batch t contains at most G motion clusters">
+                          <mrow><mo>|</mo><mo>{</mo><mi>i</mi><mo>:</mo><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mi>t</mi><mo>}</mo><mo>|</mo><mo>≤</mo><mi>G</mi><mo>,</mo><mspace width="0.6em" /><mo>∀</mo><mi>t</mi><mo>∈</mo><mo>{</mo><mn>1</mn><mo>,</mo><mo>…</mo><mo>,</mo><mi>T</mi><mo>}</mo></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">Initial Batch</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="The first batch contains G tasks trained from scratch">
+                          <mrow><mo>|</mo><mo>{</mo><mi>j</mi><mo>:</mo><msub><mi>w</mi><mi>j</mi></msub><mo>=</mo><mn>1</mn><mo>}</mo><mo>|</mo><mo>=</mo><mi>G</mi></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">Parent Selection</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="First-batch clusters have no parent; every other cluster has exactly one initialization source">
+                          <mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>≠</mo><mi>j</mi></mrow></munder><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mrow><mo stretchy="true">{</mo><mtable columnalign="left left" columnspacing="1.2em" rowspacing="0.5em"><mtr><mtd><mn>0</mn><mo>,</mo></mtd><mtd><msub><mi>w</mi><mi>j</mi></msub><mo>=</mo><mn>1</mn></mtd></mtr><mtr><mtd><mn>1</mn><mo>,</mo></mtd><mtd><msub><mi>w</mi><mi>j</mi></msub><mo>&gt;</mo><mn>1</mn></mtd></mtr></mtable></mrow></mrow>
+                        </math>
+                      </div>
+                    </div>
+                    <div class="equation-row">
+                      <span class="equation-label">Dependencies</span>
+                      <div class="equation-scroll">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="If j is initialized from i, the training batch of i must precede that of j">
+                          <mrow><msub><mi>x</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>1</mn><mo>⇒</mo><msub><mi>w</mi><mi>i</mi></msub><mo>&lt;</mo><msub><mi>w</mi><mi>j</mi></msub></mrow>
+                        </math>
+                      </div>
+                    </div>
+                  </div>
+                  <p>Capacity constraints limit the number of tasks in each batch. Dependency constraints require initialization sources to finish in an earlier batch, ruling out circular waits. CP-SAT jointly searches over the first batch, execution batches, and dependencies, avoiding initialization choices that would prevent full GPU utilization.</p>
+                  <h5>4. Replan Remaining Tasks After Training Failures</h5>
+                  <p>The initial schedule assumes every completed task yields a usable model. If a model is discarded for poor performance, tasks that depend on it must be replanned. Tasks are partitioned into successful models S, discarded models D, and untrained tasks U. Models in S remain available, models in D are excluded, and tasks in U may initialize from S or from other tasks that finish earlier in the new schedule.</p>
+                  <p>After each batch, if R tasks remain, the scheduler uses K = ⌈R / G⌉ as the upper bound on the remaining batch count and solves the assignments and dependencies again. Successful models no longer occupy GPU slots in subsequent batches and can directly initialize new tasks, preserving the value of completed training.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-section" id="research">
+      <div class="section-title"><h2>Research</h2><span></span></div>
+      <div class="section-content project-list">
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">01</span>
+            <strong>Skill-Level Data Augmentation for Robotic Manipulation</strong>
+            <span class="project-meta">Paper · Co-first Author · Accepted by Journal of Software</span>
+            <span class="project-brief">Generate recovery and object-shape variation samples from just one human demonstration per task to improve manipulation success.</span>
+            <img class="project-thumb" src="assets/skill-augmentation/jos-overview-hd.png" alt="Overview of skill-level data augmentation" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/skill-augmentation/jos-overview-hd.png" aria-label="Enlarge the skill-level data augmentation framework">
+              <img class="project-image" src="assets/skill-augmentation/jos-overview-hd.png" alt="Skill-level data augmentation framework" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <h4>Research Question: How Can Robots Learn Recovery and Adapt to New Objects from Very Few Demonstrations?</h4>
+            <p>Robot imitation learning relies on human demonstrations: observations and actions are recorded while a person controls the robot, then used to train a model to predict actions from observations. Collecting real demonstrations is expensive. With only successful examples, a model may fail to correct execution errors or generalize to objects with different shapes. This work generates additional training samples by editing existing demonstrations, a process known as data augmentation.</p>
+            <p>The paper divides manipulation trajectories into a motion-planning stage before contact and a skill-execution stage after contact, such as approaching a cup and then grasping it to pour. Skill-level augmentation generates samples for the latter stage and its initial states, focusing on recovery from deviations and observations of altered object shapes.</p>
+            <h4>Method: Add Recovery Trajectories and Perturb Non-Contact Geometry</h4>
+            <p>Failure-recovery augmentation edits point clouds (3D samples of object surfaces) and robot-arm states to simulate position errors, orientation errors, or visual occlusion at the start of object interaction. It then generates a trajectory back to the normal skill starting state and appends the original manipulation sequence. These samples teach the robot to recover from deviations and continue the task.</p>
+            <p>Contact-preserving perturbation keeps the geometry of the robot-object contact region intact while widening, stretching, or deforming other regions. For example, when the gripper holds a cup handle, the handle's contact geometry is preserved while the cup body changes shape. This increases shape diversity while retaining the contact relationships in the original demonstration.</p>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/skill-augmentation/jos-method-hd.png" aria-label="Enlarge the failure-recovery and contact-preserving perturbation diagram">
+              <img class="project-image" src="assets/skill-augmentation/jos-method-hd.png" alt="Failure-recovery trajectories and contact-preserving perturbation" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <h4>Experiments and Results</h4>
+            <p>Starting with one real demonstration per task, the experiments train DP3 policies on augmented data to predict actions from point clouds. Real wiping, pouring, and grasping tasks are evaluated on a Franka robot arm. Compared with augmentation that only changes object positions and approach paths, skill-level augmentation improves manipulation success and robustness to new objects and execution deviations.</p>
+            <p>In recovery experiments, the robot learns to correct abnormal states before continuing. When its own arm blocks the camera and hides the target, for example, it raises the arm to restore visibility before resuming the task. When the end effector drifts, it can also return to a state from which the task can continue. The videos below demonstrate these recovery behaviors on the real robot.</p>
+            <div class="video-grid three"><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-1.mp4"></video><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-2.mp4"></video><video controls playsinline preload="metadata" src="assets/skill-augmentation/demo-3.mp4"></video></div>
+            <a class="external-link" href="https://www.jos.org.cn/ch/reader/view_abstract.aspx?flag=2&amp;file_no=202604270000003&amp;journal_id=jos" target="_blank" rel="noreferrer">Paper · Journal of Software ↗</a>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">02</span>
+            <strong>CLIP-Based Few-Shot Recognition for Robotic Perception via Multi-Scale Semantic Injection and Consistency Regularization</strong>
+            <span class="project-meta">Paper · Primary Contributor · Under Review</span>
+            <span class="project-brief">Combine features from multiple visual layers with class-text guidance for classification from very few labeled examples.</span>
+            <img class="project-thumb" src="assets/clip-recognition/clip-layer-attention.png" alt="CLIP few-shot recognition illustration" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <h4>Motivation: Different CLIP Layers Retain Different Information</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-layer-attention.png" aria-label="Enlarge the comparison of attention across CLIP layers">
+              <img class="project-image" src="assets/clip-recognition/clip-layer-attention.png" alt="Attention comparison between shallow and deep CLIP features" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <p>CLIP learns from paired images and text to map visual content and language concepts into a shared feature space. Its visual encoder processes images layer by layer: early and intermediate layers retain more local structure, shape, and spatial information, while deeper layers emphasize category semantics with progressively coarser spatial detail. Many CLIP-based few-shot classifiers use only the final layer and may therefore miss local details needed to distinguish similar categories.</p>
+            <p>The figure compares attention responses at different network depths for four types of images. Earlier layers focus on the objects themselves, including screws, hammers, irons, and moka pots, preserving their locations and outlines. Deeper responses are more dispersed, with some attention falling on the background or unrelated regions. This suggests that features at different depths are complementary: classification benefits from both intermediate local evidence and deeper semantic information.</p>
+            <h4>Method: Guide Feature Extraction with Class Text and Fuse Multiple Visual Layers</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-framework.png" aria-label="Enlarge the CLIP method framework">
+              <img class="project-image" src="assets/clip-recognition/clip-framework.png" alt="Multi-scale semantic injection and semantic consistency regularization framework" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <p>Multi-Scale Semantic Injection (MSI) selects outputs from several intermediate layers of a frozen CLIP visual encoder. At each layer, class names are encoded by CLIP's text encoder. Text tokens and image patch tokens then pass through a shared Transformer, providing class-level guidance for the visual features.</p>
+            <p>After semantic injection, a global token containing class information acts as a query in cross-attention to select the most relevant local patches and produce a representation for each layer. Attention pooling then learns how to weight the layers, combining local spatial details with deeper semantics. Few-shot classification uses the distance between this representation and each class prototype.</p>
+            <p>During training, labeled support images can use their true class names, but query images have no known labels. Direct reliance on text can therefore create a mismatch between their features. Semantic Consistency Regularization (SCR) processes the same image with and without text prompts. It randomly disables some prompts so the model adapts to both inputs, while explicitly keeping the two feature representations close. This allows training to benefit from text while maintaining stable behavior with image-only inputs.</p>
+            <h4>Experiments and Figure Analysis</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/clip-recognition/clip-analysis.png" aria-label="Enlarge the CLIP attention and aggregation analysis">
+              <img class="project-image" src="assets/clip-recognition/clip-analysis.png" alt="Attention responses and aggregation contributions across visual layers" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <p>Experiments use MiniImageNet, TieredImageNet, and CUB under 5-way 1-shot and 5-way 5-shot settings: each classification episode has five classes with one or five labeled examples per class. Comparisons with existing few-shot learning and CLIP adaptation methods show competitive accuracy on both general-category and fine-grained datasets.</p>
+            <p>The left side of the figure shows attention maps from CLIP layers 6, 8, 10, and 12 with the text prompt “keyboard.” Layers 6 and 8 have more dispersed responses, layer 10 focuses more clearly on the keyboard, and layer 12 captures more abstract category information. The heatmap on the right shows how 16 attention heads weight the four layers. Most heads combine multiple levels and assign higher weights to layers 10 and 12, indicating that aggregation selects complementary information across depths.</p>
+            <p>Ablations remove multi-layer features, cross-attention, random semantic injection, and the feature-consistency loss. Classification is strongest when multi-layer features and cross-attention are both enabled. Randomly disabling text prompts together with explicit feature alignment also outperforms configurations that omit either component. MSI primarily improves extraction of local discriminative evidence, while SCR reduces the mismatch between text-assisted support images and image-only queries.</p>
+            <span class="coming-soon">Paper · Coming Soon</span>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <section class="content-section" id="projects">
+      <div class="section-title"><h2>Personal Projects</h2><span></span></div>
+      <div class="section-content project-list">
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">03</span>
+            <strong>Long-Range 3D Target Localization and Aiming Control</strong>
+            <span class="project-meta">RoboMaster 2026</span>
+            <span class="project-brief">Fuse camera and LiDAR measurements for target localization, then refine aiming with impact feedback and attitude compensation on a real robot.</span>
+            <img class="project-thumb" src="assets/remote-aiming/rm-robot.jpg" alt="Robot equipped with the long-range aiming system" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <h4>Problem: Monocular Localization Is Insufficient Beyond 20 m</h4>
+            <p>This project supports long-range lob shots in the RoboMaster robot competition. Beyond 20 m, targets occupy few image pixels, and distance amplifies corner-detection errors in PnP-based monocular localization. The resulting depth errors can exceed the accuracy required for ballistic calculations. I introduced LiDAR, jointly calibrated it with the camera, and used point clouds for more accurate target range and 3D position estimates before computing trajectories and gimbal commands.</p>
+            <h4>Sensing Hardware</h4>
+            <img class="project-image" src="assets/remote-aiming/rm-camera-rig-detail.png" alt="Annotated hardware: industrial camera, 50 mm lens, Livox Mid-70, and laser rangefinder" loading="lazy" />
+            <h4>Method: Camera–LiDAR Localization and Feedback-Based Aiming Corrections</h4>
+            <button type="button" aria-haspopup="dialog" class="paper-image-link" data-image-src="assets/remote-aiming/flowchart_high_res.png" aria-label="Enlarge the long-range aiming system flowchart">
+              <img class="project-image" src="assets/remote-aiming/flowchart_high_res.png" alt="Long-range aiming pipeline: camera detection, point-cloud localization, projectile calibration, and gimbal compensation" loading="lazy" />
+              <span>Click to enlarge ↗</span>
+            </button>
+            <p>ROS2_CALIB first estimates the relative position and orientation of the camera and Livox Mid-70 LiDAR. At runtime, YOLO target boxes are associated with the corresponding LiDAR points. Clustering and filtering reject outliers, and the remaining points estimate horizontal range, vertical offset, and 3D target position. Ballistic calculations then determine the required pitch and yaw offsets and generate commands for the two-axis gimbal.</p>
+            <p>To handle false and missed projectile detections, single-object tracking associates the same projectile across frames. Its observed trajectory and impact location guide aim corrections. When the chassis tilts, IMU attitude measurements and two-axis gimbal kinematics transform coordinates so that yaw and pitch commands remain referenced to the ground.</p>
+            <h4>Results: Integrated Localization, Feedback, and Attitude Compensation</h4>
+            <p>The system has completed integration and real-robot testing of sensor calibration, 3D localization, gimbal control, projectile tracking, and attitude compensation. An independent laser rangefinder provided reference distances to check the localization results. The video below shows the sensing and control process on the robot.</p>
+            <video class="project-video" controls playsinline preload="metadata" poster="assets/remote-aiming/rm-range-test.png" src="assets/remote-aiming/demo-4.mp4"></video>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">04</span>
+            <strong>Low-Bandwidth Image Transmission with Neural Compression</strong>
+            <span class="project-meta">RoboMaster 2026</span>
+            <span class="project-brief">Compress 192 × 192 images to at most 560 B per frame, with accelerated inference and super-resolution reconstruction for impact observation.</span>
+            <img class="project-thumb" src="assets/video-compression/compress-result.png" alt="Low-bitrate image transmission results" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <h4>Problem: Enforce a Strict Frame Budget with Limited Compute and Battery Power</h4>
+            <p>The communication protocol allows only about 560 B of image data per frame; oversized frames cannot be sent directly. CompressAI's pretrained mbt2018_mean model uses a fixed compression configuration, lacks real-time variable-rate control, and cannot strictly guarantee that scenes of different complexity fit the budget. I added QVRF-based rate adjustment and retries for oversized frames so the bitstream can adapt to scene complexity.</p>
+            <p>Compute and power are also constrained. The onboard sender runs on a NUC12, while the receiver is a laptop with an NVIDIA GPU operating on battery power. Both ends must continuously perform neural inference, entropy coding, and image processing, making inference efficiency and runtime overhead important alongside rate control.</p>
+            <h4>Compression: Control Frame Size Through Feature Quantization and Feedback</h4>
+            <p><strong>Image features and statistics.</strong> The sender feeds a 192 × 192 RGB image into the analysis network g<sub>a</sub> to obtain a compact reconstruction feature y. Floating-point features are still too large to transmit directly, so they require quantization and entropy coding. The hyperprior network h<sub>a</sub> transforms y into a compact auxiliary feature z. After z is quantized and decoded, h<sub>s</sub> predicts the mean and scale of each element in y, providing a probability model for coding.</p>
+            <p><strong>Quantization and entropy coding.</strong> The predicted mean is subtracted from y, the result is multiplied by a gain factor, and values are rounded to integer symbols. A smaller gain groups more nearby values into the same symbol, reducing byte count at the cost of image detail. Predicted scales select probability tables, and rANS entropy coding turns the symbols into a compact bitstream, assigning fewer bits to frequent symbols. The transmitted data includes the main y stream, the auxiliary z stream, and decoding information such as gain.</p>
+            <p><strong>Per-frame feedback and oversized-frame handling.</strong> The next frame's gain is adjusted using the previous frame's byte count relative to the 560 B budget. Spare capacity increases gain to retain detail; a near-full budget decreases it. If a frame exceeds the budget, gain is reduced further and encoding is retried. If it remains oversized after repeated attempts, an OVER marker is sent and the receiver keeps the previous frame, preventing oversized image data from entering the link.</p>
+            <p><strong>Receiver reconstruction.</strong> The receiver decodes z and uses h<sub>s</sub> to recover the same means and scales as the sender. It decodes the integer symbols of y with matching probability tables, divides by gain, and adds the means back. The reconstructed features pass through the synthesis network g<sub>s</sub>, followed by RLFN ×2 super-resolution. The auxiliary feature z lets both ends reconstruct the same statistics without transmitting large mean and scale arrays. Details of compression, rate feedback, and exception handling are available in the <a class="text-link" href="https://github.com/ElainaXD/rm_compress#具体实现" target="_blank" rel="noreferrer">technical documentation ↗</a>.</p>
+            <h4>Inference Optimization: Reduce Overhead Along Both Data Paths</h4>
+            <p>The sender uses the NUC12 integrated GPU and OpenVINO to accelerate g<sub>a</sub>. PrePostProcessor folds BGR uint8 input handling, resizing, RGB conversion, and normalization into the inference graph, avoiding separate CPU preprocessing. NumPy searchsorted replaces CompressAI's original build_indexes search to reduce probability-table index construction overhead before entropy coding.</p>
+            <p>The receiver fuses the synthesis network g<sub>s</sub> and RLFN ×2 into a single TensorRT engine, producing 384 × 384 images without returning intermediate features to the CPU. CuPy then converts NCHW FP32 output to HWC uint8 on the GPU. Entropy-coding modules remain on the CPU because cross-device numerical differences could produce inconsistent probability tables at the two ends.</p>
+            <h4>Results: Real-Time Low-Bandwidth Transmission for Impact Observation</h4>
+            <p>The system keeps compressed 192 × 192 RGB images within 560 B per frame. The implementation documented in the repository supports 24 FPS transmission and reconstructs 384 × 384 images at the receiver. Real-world tests show that the reconstructed view can help identify projectile impacts and correct aiming.</p>
+            <p><strong>The bottom-right view in the video below is the final display seen by the operator.</strong> It shows the scene after compression, transmission, decoding, and super-resolution reconstruction, supporting observation of targets and projectile impacts.</p>
+            <video class="project-video" controls playsinline preload="metadata" poster="assets/video-compression/compress-landing.png" src="assets/video-compression/demo-5.mp4"></video>
+            <a class="external-link" href="https://github.com/ElainaXD/rm_compress" target="_blank" rel="noreferrer">GitHub Repository ↗</a>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">05</span>
+            <strong>YOLO-Based Detection and Real-Time Auto-Aiming</strong>
+            <span class="project-meta">RoboMaster 2025</span>
+            <span class="project-brief">Train and deploy detection models on Orin NX, then increase measured throughput from 90 to 150 FPS with a multithreaded pipeline.</span>
+            <img class="project-thumb" src="assets/auto-aim/yolo-dataset.jpg" alt="YOLO auto-aiming project illustration" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <h4>Power Rune Detection and Model Deployment</h4>
+            <p>I handled image collection, cleaning, annotation, YOLO training, and TensorRT deployment for the Power Rune, a rotating target in the competition, running detection on NVIDIA Orin NX. When a rule change removed the target's outer frame, I used its known dimensions and OpenCV to mask the frame in existing images. This reduced the mismatch between training data and the new field appearance, allowed the dataset to be reused, and supported deployment of the updated model in competition.</p>
+            <h4>Multithreaded Pipeline Optimization for Auto-Aiming</h4>
+            <p>Image capture, preprocessing, inference, postprocessing, Kalman-filter observation updates, gimbal control, and firing control run in separate task threads. Data moves through a producer–consumer pipeline, with condition variables synchronizing threads when data becomes ready. This reduces blocking between stages. Multiple inference threads address the inference bottleneck and allow processing of different frames to overlap.</p>
+            <figure class="project-flow">
+              <button type="button" aria-haspopup="dialog" data-image-src="assets/auto-aim/diagram.png" aria-label="Enlarge the multithreaded auto-aiming pipeline">
+                <img src="assets/auto-aim/diagram.png" alt="Multithreaded auto-aiming pipeline: capture and preprocessing, parallel armor or Power Rune inference, postprocessing, Kalman filtering, gimbal and firing control, synchronized with condition variables" width="937" height="900" loading="lazy" />
+              </button>
+              <figcaption>Multithreaded Auto-Aiming Pipeline · Click to Enlarge</figcaption>
+            </figure>
+            <p>Under the project's test conditions, multithreading increased processing throughput from 90 to 150 frames per second. The two videos below show the auto-aiming system running on real robots.</p>
+            <div class="video-grid two"><video controls playsinline preload="metadata" src="assets/auto-aim/demo-6.mp4"></video><video controls playsinline preload="metadata" src="assets/auto-aim/demo-7.mp4"></video></div>
+          </div>
+        </details>
+
+        <details class="project-card">
+          <summary class="project-summary">
+            <span class="project-index">06</span>
+            <strong>Mobile Robot Chassis Control and Power Limiting</strong>
+            <span class="project-meta">RoboMaster 2024</span>
+            <span class="project-brief">Build a modular controller for two omnidirectional chassis types and fit a power model from real-vehicle data to dynamically limit motor output.</span>
+            <img class="project-thumb" src="assets/chassis-control/infantry.jpg" alt="Infantry robot with an omni-wheel chassis" loading="lazy" />
+            <span class="expand-label">View details</span>
+          </summary>
+          <div class="project-detail">
+            <h4>Embedded Chassis Control Framework</h4>
+            <p>I developed an embedded control framework for omni-wheel and mecanum-wheel chassis, separating peripheral communication, state observation, and control logic into independent modules. This reduces coupling between control algorithms and hardware communication. Communication adapters, state observers, and control parameters can be modified independently, simplifying reuse and further development across chassis types.</p>
+            <h4>Motor Power Modeling</h4>
+            <p>I collected motor speed, current, and power measurements from real vehicles at different speeds and loads to fit a motor power estimation model. At runtime, the controller estimates total chassis power from each motor's state and dynamically limits motor targets. This adapts power control to current operating conditions instead of imposing a fixed output cap.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="content-section tinted" id="education">
+      <div class="section-title"><h2>Education</h2><span></span></div>
+      <div class="section-content"><article class="education-card"><div><h3>Bachelor's Degree in Artificial Intelligence</h3><p>Southeast University</p></div><time>2023 — 2027</time></article></div>
+    </section>
+
+  </main>
+
+  <footer id="contact">
+    <div><h2>Yuhao Wei</h2></div>
+    <div class="footer-links"><a href="mailto:wyaho@163.com">wyaho@163.com</a><a href="tel:+8615122981756">151 2298 1756</a><a href="#home">Back to top ↑</a></div>
+    <p class="copyright">© <span data-year></span> Yuhao Wei</p>
+  </footer>
+</body>
+</html>
