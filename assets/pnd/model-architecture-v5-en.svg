@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2600" height="2080" viewBox="0 0 2600 2080" role="img" aria-labelledby="title desc">
+<title id="title">Two-Stream Temporal Actor–Critic</title>
+<desc id="desc">A compact overview and one continuous fusion block. Eleven robot observations comprise ten past frames plus the current frame. Twenty-one Reference Motion frames comprise ten past target frames, the current target frame, and ten future target frames. Fusion Block 1 uses all history queries; Fusion Block 2 uses only the current query while retaining all history and Reference Motion keys and values. Cross queries are projected from the updated self-attention tokens without pooling. Actor and Critic weights are independent.</desc>
+<defs>
+<marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#3971a9"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#27897c"/></marker>
+<marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8998a6"/></marker>
+<style>text{font-family:'Noto Sans CJK SC','DejaVu Sans',Arial,sans-serif;fill:#263c51;font-size:27px} .blue{fill:#eff5fc;stroke:#94b1d0;stroke-width:1.8} .green{fill:#edf8f3;stroke:#8cbcb0;stroke-width:1.8} .orange{fill:#fff6e8;stroke:#d7ba87;stroke-width:1.8} .white{fill:white;stroke:#a7b7c6;stroke-width:1.8} .flow{fill:none;stroke:#3971a9;stroke-width:2.8;marker-end:url(#b)} .ref{fill:none;stroke:#27897c;stroke-width:2.8;marker-end:url(#g)} .skip{fill:none;stroke:#8998a6;stroke-width:2.2;marker-end:url(#s)} .wire{fill:none;stroke:#3971a9;stroke-width:2.8} .rwire{fill:none;stroke:#27897c;stroke-width:2.8}</style>
+</defs><rect width="2600" height="2080" fill="white"/>
+
+<text x="65" y="92" text-anchor="start" style="font-size:46px;font-weight:700;fill:#263c51">Two-Stream Temporal Actor–Critic</text>
+<text x="65" y="145" text-anchor="start" style="font-size:28px;font-weight:400;fill:#65798b">Robot state history meets reference motion with look-ahead.</text>
+<path d="M1040 200V1885" stroke="#dbe3e9" stroke-width="2"/>
+<text x="65" y="236" text-anchor="start" style="font-size:33px;font-weight:700;fill:#263c51">Overall architecture</text>
+<text x="1090" y="236" text-anchor="start" style="font-size:33px;font-weight:700;fill:#263c51">Inside a Fusion Block</text>
+<rect x="65" y="292" width="445" height="270" rx="13" class="blue"/>
+<rect x="555" y="292" width="445" height="270" rx="13" class="green"/>
+<text x="287" y="336" text-anchor="middle" style="font-size:28px;font-weight:700;fill:#263c51">Robot observation history</text>
+<text x="287" y="379" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">11 × 93 (Actor) / 11 × 219 (Critic)</text>
+<rect x="90.0" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="126.3" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="162.5" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="198.8" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="235.1" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="271.4" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="307.6" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="343.9" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="380.2" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="416.5" y="421" width="32.3" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="452.7" y="421" width="32.3" height="38" rx="4" fill="#efc67e"/>
+<text x="90" y="504" text-anchor="start" style="font-size:24px;font-weight:400;fill:#263c51">Past 10</text>
+<text x="487" y="504" text-anchor="end" style="font-size:24px;font-weight:400;fill:#263c51">Current</text>
+<text x="777" y="336" text-anchor="middle" style="font-size:28px;font-weight:700;fill:#263c51">Reference Motion</text>
+<text x="777" y="379" text-anchor="middle" style="font-size:27px;font-weight:400;fill:#263c51">21 × 67</text>
+<rect x="580.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="599.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="618.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="637.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="656.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="675.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="694.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="713.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="732.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="751.0" y="421" width="15.0" height="38" rx="4" fill="#a5c2e6"/>
+<rect x="770.0" y="421" width="15.0" height="38" rx="4" fill="#efc67e"/>
+<rect x="789.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="808.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="827.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="846.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="865.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="884.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="903.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="922.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="941.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<rect x="960.0" y="421" width="15.0" height="38" rx="4" fill="#9ed4bd"/>
+<text x="580" y="504" text-anchor="start" style="font-size:23px;font-weight:400;fill:#263c51">Past 10</text>
+<text x="777" y="504" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">Current</text>
+<text x="975" y="504" text-anchor="end" style="font-size:23px;font-weight:400;fill:#263c51">Future 10</text>
+<path d="M287 562V650" class="flow"/>
+<path d="M777 562V650" class="ref"/>
+<rect x="65" y="650" width="445" height="86" rx="13" class="blue"/>
+<rect x="555" y="650" width="445" height="86" rx="13" class="green"/>
+<text x="287" y="703" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">History embedding</text>
+<text x="777" y="703" text-anchor="middle" style="font-size:26px;font-weight:700;fill:#263c51">Reference Motion embedding</text>
+<path d="M287 736V860" class="flow"/>
+<rect x="65" y="860" width="445" height="122" rx="13" class="blue"/>
+<text x="287" y="933" text-anchor="middle" style="font-size:34px;font-weight:700;fill:#263c51">Fusion Block 1</text>
+<path d="M777 736V920H510" class="ref"/>
+<circle cx="777" cy="920" r="4" fill="#27897c"/>
+<path d="M777 920V1200H510" class="ref"/>
+<text x="798" y="1060" text-anchor="start" style="font-size:24px;font-weight:400;fill:#27897c">To both blocks</text>
+<path d="M287 982V1140" class="flow"/>
+<rect x="65" y="1140" width="445" height="122" rx="13" class="orange"/>
+<text x="287" y="1213" text-anchor="middle" style="font-size:34px;font-weight:700;fill:#263c51">Fusion Block 2</text>
+<path d="M287 1262V1418" class="flow"/>
+<rect x="65" y="1418" width="445" height="92" rx="13" class="white"/>
+<text x="287" y="1475" text-anchor="middle" style="font-size:30px;font-weight:700;fill:#263c51">LayerNorm → output head</text>
+<path d="M287 1510V1603" class="flow"/>
+<rect x="65" y="1603" width="935" height="135" rx="13" class="white"/>
+<text x="98" y="1654" text-anchor="start" style="font-size:30px;font-weight:700;fill:#263c51">Actor: 29-D action mean</text>
+<text x="98" y="1700" text-anchor="start" style="font-size:30px;font-weight:700;fill:#263c51">Critic: 1-D state value</text>
+<text x="65" y="1810" text-anchor="start" style="font-size:26px;font-weight:400;fill:#65798b">Actor and Critic share the architecture, not parameters.</text>
+<text x="65" y="1860" text-anchor="start" style="font-size:26px;font-weight:400;fill:#65798b">Embeddings map each frame independently to one token.</text>
+<rect x="1460" y="295" width="615" height="72" rx="13" class="blue"/>
+<text x="1767" y="342" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">History tokens</text>
+<rect x="2210" y="295" width="325" height="97" rx="13" class="green"/>
+<text x="2372" y="335" text-anchor="middle" style="font-size:26px;font-weight:700;fill:#263c51">Reference Motion</text>
+<text x="2372" y="373" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">all 21 tokens</text>
+<path d="M1767 367V425" class="flow"/>
+<circle cx="1767" cy="390" r="4" fill="#3971a9"/>
+<path d="M1767 390H1110V895H1745" class="skip"/>
+<rect x="1525" y="425" width="485" height="65" rx="13" class="blue"/>
+<text x="1767" y="468" text-anchor="middle" style="font-size:29px;font-weight:400;fill:#263c51">LayerNorm</text>
+<path d="M1767 490V510" class="wire"/>
+<path d="M1425 510H2060" class="wire"/>
+<path d="M1425 510V540" class="flow"/>
+<path d="M2060 510V540" class="flow"/>
+<rect x="1175" y="540" width="565" height="139" rx="13" class="orange"/>
+<text x="1457" y="581" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">Q projection</text>
+<text x="1457" y="623" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">Fusion Block 1: all history tokens</text>
+<text x="1457" y="657" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">Fusion Block 2: current token</text>
+<rect x="1840" y="540" width="400" height="110" rx="13" class="blue"/>
+<text x="2040" y="582" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">K / V projections</text>
+<text x="2040" y="624" text-anchor="middle" style="font-size:25px;font-weight:400;fill:#263c51">all history tokens</text>
+<path d="M1425 679V711" class="flow"/>
+<rect x="1275" y="711" width="300" height="55" rx="13" class="orange"/>
+<text x="1425" y="748" text-anchor="middle" style="font-size:25px;font-weight:400;fill:#263c51">RoPE on Q</text>
+<path d="M1940 650V711" class="flow"/>
+<rect x="1790" y="711" width="300" height="55" rx="13" class="orange"/>
+<text x="1940" y="748" text-anchor="middle" style="font-size:25px;font-weight:400;fill:#263c51">RoPE on K</text>
+<path d="M1425 766V795" class="flow"/>
+<path d="M1940 766V795" class="flow"/>
+<path d="M2170 650V831H2150" class="flow"/>
+<rect x="1350" y="795" width="800" height="72" rx="13" class="blue"/>
+<text x="1750" y="842" text-anchor="middle" style="font-size:31px;font-weight:700;fill:#263c51">Causal Self-Attention</text>
+<path d="M1767 867V873" class="wire"/>
+<circle cx="1767" cy="895" r="22" fill="white" stroke="#8998a6" stroke-width="2"/>
+<path d="M1758 895H1776M1767 886V904" fill="none" stroke="#60778a" stroke-width="2"/>
+<text x="1130" y="821" text-anchor="start" style="font-size:23px;font-weight:400;fill:#788b9b">Selected input</text>
+<text x="1130" y="854" text-anchor="start" style="font-size:23px;font-weight:400;fill:#788b9b">tokens</text>
+<path d="M1767 917V945" class="flow"/>
+<rect x="1435" y="945" width="665" height="64" rx="13" class="blue"/>
+<text x="1767" y="987" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">Updated history tokens</text>
+<path d="M1767 1009V1075" class="flow"/>
+<circle cx="1767" cy="1040" r="4" fill="#3971a9"/>
+<path d="M1767 1040H1110V1560H1745" class="skip"/>
+<rect x="1525" y="1075" width="485" height="65" rx="13" class="blue"/>
+<text x="1767" y="1118" text-anchor="middle" style="font-size:29px;font-weight:400;fill:#263c51">LayerNorm</text>
+<path d="M1767 1140V1175" class="flow"/>
+<rect x="1465" y="1175" width="605" height="139" rx="13" class="orange"/>
+<text x="1767" y="1216" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">Q projection</text>
+<text x="1767" y="1258" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">Fusion Block 1: all updated tokens</text>
+<text x="1767" y="1292" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">Fusion Block 2: updated current token</text>
+<path d="M1767 1314V1345" class="flow"/>
+<rect x="1600" y="1345" width="335" height="55" rx="13" class="orange"/>
+<text x="1767" y="1382" text-anchor="middle" style="font-size:25px;font-weight:400;fill:#263c51">RoPE on Q</text>
+<path d="M2372 392V1075" class="ref"/>
+<rect x="2185" y="1075" width="370" height="65" rx="13" class="green"/>
+<text x="2370" y="1118" text-anchor="middle" style="font-size:29px;font-weight:400;fill:#263c51">LayerNorm</text>
+<path d="M2370 1140V1175" class="ref"/>
+<rect x="2170" y="1175" width="385" height="110" rx="13" class="green"/>
+<text x="2362" y="1217" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">K / V projections</text>
+<text x="2362" y="1259" text-anchor="middle" style="font-size:23px;font-weight:400;fill:#263c51">all Reference Motion tokens</text>
+<path d="M2260 1285V1345" class="ref"/>
+<rect x="2130" y="1345" width="260" height="55" rx="13" class="orange"/>
+<text x="2260" y="1382" text-anchor="middle" style="font-size:25px;font-weight:400;fill:#263c51">RoPE on K</text>
+<path d="M2260 1400V1420H2040V1450" class="ref"/>
+<path d="M2470 1285V1489H2160" class="ref"/>
+<path d="M1767 1400V1450" class="flow"/>
+<rect x="1350" y="1450" width="810" height="78" rx="13" class="blue"/>
+<text x="1755" y="1500" text-anchor="middle" style="font-size:31px;font-weight:700;fill:#263c51">Cross-Attention</text>
+<path d="M1767 1528V1538" class="wire"/>
+<circle cx="1767" cy="1560" r="22" fill="white" stroke="#8998a6" stroke-width="2"/>
+<path d="M1758 1560H1776M1767 1551V1569" fill="none" stroke="#60778a" stroke-width="2"/>
+<path d="M1767 1582V1625" class="flow"/>
+<circle cx="1767" cy="1605" r="4" fill="#3971a9"/>
+<path d="M1767 1605H1110V1780H1745" class="skip"/>
+<rect x="1525" y="1625" width="485" height="60" rx="13" class="blue"/>
+<text x="1767" y="1665" text-anchor="middle" style="font-size:29px;font-weight:400;fill:#263c51">LayerNorm</text>
+<path d="M1767 1685V1710" class="flow"/>
+<rect x="1525" y="1710" width="485" height="45" rx="13" class="blue"/>
+<text x="1767" y="1742" text-anchor="middle" style="font-size:28px;font-weight:700;fill:#263c51">FFN</text>
+<path d="M1767 1755V1758" class="wire"/>
+<circle cx="1767" cy="1780" r="22" fill="white" stroke="#8998a6" stroke-width="2"/>
+<path d="M1758 1780H1776M1767 1771V1789" fill="none" stroke="#60778a" stroke-width="2"/>
+<path d="M1767 1802V1835" class="flow"/>
+<rect x="1435" y="1835" width="665" height="64" rx="13" class="orange"/>
+<text x="1767" y="1877" text-anchor="middle" style="font-size:29px;font-weight:700;fill:#263c51">Fused output tokens</text>
+<path d="M65 1930H2535" stroke="#dbe3e9" stroke-width="2"/>
+<text x="65" y="1980" text-anchor="start" style="font-size:25px;font-weight:400;fill:#65798b">Q: Query   K: Key   V: Value   |   FFN: Feed-forward network   |   ⊕: Residual addition   |   RoPE: Rotary position encoding</text>
+<text x="65" y="2030" text-anchor="start" style="font-size:25px;font-weight:400;fill:#65798b">Cross-attention queries are projected from the updated tokens, without pooling. RoPE acts on Q and K only.</text>
+</svg>

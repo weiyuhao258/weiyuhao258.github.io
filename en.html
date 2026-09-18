@@ -55,15 +55,29 @@
       <div class="section-content timeline">
         <article class="timeline-item">
           <span class="timeline-dot"></span>
-          <div class="experience-card">
-            <div class="card-heading"><div><h3>Reinforcement Learning for Motion Control</h3><p>PNDbotics</p></div><time>Jul 2026 – Present</time></div>
+          <details class="project-card">
+            <summary class="project-summary">
+              <span class="project-index">PNDbotics</span>
+              <strong>Reinforcement Learning for Motion Control</strong>
+              <span class="project-meta">Internship · <time>Jul 2026 – Present</time></span>
+              <span class="project-brief">Whole-body teleoperation and motion retargeting, general-purpose motion tracking, Transformer architecture improvements, and GPU training optimization.</span>
+              <img class="project-thumb" src="assets/pnd/hme-cpsat-dagger-pipeline-en.svg" alt="PNDbotics whole-body motion tracking training pipeline" loading="lazy" />
+              <span class="expand-label">View details</span>
+            </summary>
             <div class="experience-block">
               <h4>Whole-Body Teleoperation and Motion Retargeting</h4>
               <p>To make a humanoid robot follow a human operator, I used the Mink inverse kinematics toolkit to convert human skeletal motion captured by VR devices into whole-body joint targets. This process, called motion retargeting, accounts for differences in body proportions and joint structures between humans and robots. Inverse kinematics (IK) computes joint configurations from target positions and orientations. I also resolved ordering and timing issues in asynchronous ROS 2 message processing and improved offline data collection, human-body calibration, and preprocessing tools for Pico devices.</p>
             </div>
             <div class="experience-block">
-              <h4>Reinforcement Learning for Whole-Body Motion Tracking</h4>
-              <p>The goal is to train a single control model that tracks diverse reference motions and tolerates noisy teleoperation inputs. I built a training pipeline with mjlab, following the Humanoid-GPT approach: group similar motions, train a specialized control policy for each group, and use DAgger (Dataset Aggregation) to teach a unified model to imitate those policies. Motion grouping uses the Harmonic Motion Embedding (HME) proposed in Humanoid-GPT to represent motions as feature vectors and measure similarity. To handle input noise from devices such as Pico, I incorporated residual adaptation from MOSAIC to learn additional corrections on top of the general policy.</p>
+              <h4>General-Purpose Whole-Body RL Motion Tracking</h4>
+              <p>To train a single control model to track diverse reference motions, I built a whole-body motion tracking pipeline with mjlab. Following Humanoid-GPT, I represented motions using Harmonic Motion Embedding (HME), grouped similar motions with K-Means, and trained a PPO expert policy for each motion cluster. I then used DAgger (Dataset Aggregation) to query the corresponding experts at states visited by the student policy and aggregate their supervision, distilling the experts into a unified motion tracking policy.</p>
+              <p>After observing that parameter transfer between similar motion clusters could accelerate convergence, I used trained models to warm-start nearby clusters. I formulated the joint selection of training order and initialization sources with CP-SAT to minimize HME transfer distances between clusters, subject to the theoretical minimum number of training batches.</p>
+              <figure class="project-flow">
+                <button type="button" aria-haspopup="dialog" data-image-src="assets/pnd/hme-cpsat-dagger-pipeline-en.svg" aria-label="Enlarge the whole-body motion tracking training pipeline">
+                  <img src="assets/pnd/hme-cpsat-dagger-pipeline-en.svg" width="1946" height="780" alt="Motion data is encoded with HME and clustered; CP-SAT schedules expert warm-start dependencies, followed by multi-teacher DAgger distillation into a unified policy" loading="lazy" />
+                </button>
+                <figcaption>Training pipeline · Click to enlarge. The 14 clusters and warm-start forest rooted at C1 and C14 are illustrative; the actual number of roots depends on the solver output. The points are not measured embedding projections. Actual scheduling also accounts for GPU capacity and training dependencies.</figcaption>
+              </figure>
             </div>
             <div class="experience-block">
               <h4>Parameter Reuse and Multi-GPU Scheduling for PPO Experts</h4>
@@ -136,7 +150,48 @@
                 </div>
               </details>
             </div>
-          </div>
+            <div class="experience-block">
+              <h4>Transformer Policy Architecture Improvements</h4>
+              <p>To jointly model the robot's state history and future motion targets, I redesigned the architecture as a two-stream temporal Actor–Critic. Robot observation history and reference motion are embedded separately, one token per frame. Causal self-attention models the state history, while cross-attention reads the target motion sequence. The history window contains 10 past frames and the current frame; the reference motion window contains 10 past target frames, the current target frame, and 10 future target frames, providing both temporal context and upcoming targets.</p>
+              <p>Two sequential Fusion Blocks combine the streams. The first updates all 11 history tokens; the second computes queries and subsequent outputs only for the current token, omitting final-stage computations that do not contribute to the output head. It still reads the full keys and values (K/V) from the 11-frame history and 21-frame reference motion, limiting computational overhead while using a longer temporal context.</p>
+              <figure class="project-flow">
+                <button type="button" aria-haspopup="dialog" data-image-src="assets/pnd/model-architecture-v5-en.svg" aria-label="Enlarge the two-stream temporal Actor–Critic architecture">
+                  <img src="assets/pnd/model-architecture-v5-en.svg" width="2600" height="2080" alt="Two-stream temporal Actor–Critic: 11 observation frames and 21 reference motion frames are combined through two Fusion Blocks with causal self-attention and cross-attention; the second block uses only the current query" loading="lazy" />
+                </button>
+                <figcaption>Two-stream temporal Actor–Critic · Click to enlarge. Actor and Critic have the same architecture but independent parameters, producing a 29-dimensional action mean and a scalar state value, respectively.</figcaption>
+              </figure>
+              <details>
+                <summary>Inputs, Attention-Based Fusion, and Removal of Unused Computation</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>Preserve Temporal Information Frame by Frame</h5>
+                  <p>The robot observation input is 11 × 93 for the Actor and 11 × 219 for the Critic; both use a 21 × 67 reference motion input (frames × features per frame). Reference motion specifies the target movement to track, including future targets, rather than control actions previously executed by the robot. Each stream is mapped to one token per frame, without temporal pooling.</p>
+                  <h5>Model State History Before Reading Reference Motion</h5>
+                  <p>Each Fusion Block contains causal self-attention, cross-attention, and a feed-forward network (FFN), with residual connections. Cross-attention queries (Q) come from history tokens updated by self-attention, while K/V come from reference motion tokens. Rotary positional embeddings (RoPE) are applied to Q and K. Both blocks receive the same reference motion embeddings, but have separate normalization and projection parameters.</p>
+                  <h5>Remove Only Computations Unused by the Output Head</h5>
+                  <p>Fusion Block 1 retains outputs for all history tokens. Fusion Block 2 computes self-attention queries, cross-attention queries, and FFN outputs only for the current token. In both blocks, self-attention still reads all history K/V and cross-attention reads all reference motion K/V, so neither accessible window is shortened.</p>
+                </div>
+              </details>
+            </div>
+            <div class="experience-block">
+              <h4>Training Performance Optimization: Fused RoPE and Short-Sequence Attention</h4>
+              <p>Using PyTorch Profiler, I identified two sources of GPU overhead during PPO training of the two-stream temporal Transformer: intermediate tensor reads and writes in the multi-step RoPE implementation, and general-purpose attention kernels poorly suited to the model's short sequences. I developed fused RoPE and specialized attention forward and backward kernels in Triton, matching the original backend's key floating-point operation order to address numerical differences that were amplified during full training updates.</p>
+              <p>In benchmarks using actual environment rollouts on an RTX PRO 6000 Blackwell, with the model architecture, precision settings, and PPO configuration unchanged, <strong>PPO update time fell from 3.2139 s to 1.6718 s (48.0% lower), while combined rollout collection and update time fell from 4.5597 s to 2.9826 s (34.6% lower), yielding approximately 1.53× iteration throughput.</strong> These measurements exclude log writes, periodic evaluation, checkpoint saving, and state resets.</p>
+              <details>
+                <summary>Performance Bottlenecks, Kernel Implementation, and Numerical Validation</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>Fuse RoPE to Reduce Intermediate GPU Memory Access</h5>
+                  <p>I fused feature pairing, sine/cosine multiplication, and rotation arithmetic into a Triton kernel, implemented a fused backward pass, and integrated both into the existing training pipeline through a custom torch.autograd.Function. Preserving the original FP32 operation order reduced repeated writes and reads of intermediate results. In an independent ablation, caching sine/cosine tables alone improved performance by only about 0.12%; kernel fusion provided the main speedup.</p>
+                  <h5>Tailor Attention Forward and Backward Passes to the Actual Short Sequences</h5>
+                  <p>The attention shapes across the two Fusion Blocks are 11×11, 11×21, 1×11, and 1×21, with a head dimension of 32. I used smaller tiles suited to these shapes and implemented Q/K/V gradients with support for the actual tensor layouts. In profiler comparisons using the same actual PPO minibatch, the total time of the main attention forward and backward kernels fell from 46.850 ms to 13.244 ms.</p>
+                  <h5>Go Beyond Mathematical Equivalence to Numerical Agreement During Training</h5>
+                  <p>The initial kernels were faster, but small local differences were amplified by subsequent TF32 linear layers, causing AdamW state validation to fail. I examined the original backend's FastF32 path and matched operand splitting and rounding, the sequence of three TF32 matrix multiply-accumulate operations, segmented reductions, and key operation ordering in the softmax forward and backward passes. The final implementation passed validation of complete training updates within the predefined error tolerances.</p>
+                  <h5>Validate with Actual Rollouts and a Complete PPO Update</h5>
+                  <p>Using 2048 environments, 24 rollout steps, and 5 epochs × 4 minibatches, I compared the baseline and optimized implementation from identical model and optimizer states on the same collected on-policy data. In the tested cases, the recorded maximum absolute differences were zero for full-model outputs and gradients, as well as 4 loss values, 129 parameters, and 387 AdamW state tensors after 20 optimizer steps. Adaptive learning-rate decisions also matched. An additional 48 tests covering tensor layouts, partial gradient computation, and repeated runs passed.</p>
+                  <p>The performance results are steady-state measurements after warmup; the 20 optimizer steps above constitute one complete PPO update. Validation is limited to the tested hardware, FP32 with the original TF32 settings, and the specified short-sequence shapes. It does not establish identical long-term training trajectories or final convergence.</p>
+                </div>
+              </details>
+            </div>
+          </details>
         </article>
       </div>
     </section>

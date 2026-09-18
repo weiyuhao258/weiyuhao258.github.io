@@ -55,15 +55,29 @@
       <div class="section-content timeline">
         <article class="timeline-item">
           <span class="timeline-dot"></span>
-          <div class="experience-card">
-            <div class="card-heading"><div><h3>强化学习运动控制（RL 运控岗）</h3><p>PNDbotics</p></div><time>2026.7-至今</time></div>
+          <details class="project-card">
+            <summary class="project-summary">
+              <span class="project-index">PNDbotics</span>
+              <strong>强化学习运动控制（RL 运控岗）</strong>
+              <span class="project-meta">实习 · <time>2026.7-至今</time></span>
+              <span class="project-brief">从全身遥操作与运动重定向，到通用运动跟踪策略训练、Transformer 结构改进与 GPU 训练性能优化。</span>
+              <img class="project-thumb" src="assets/pnd/hme-cpsat-dagger-pipeline.svg?v=2" alt="PNDbotics 全身运动跟踪训练流程" loading="lazy" />
+              <span class="expand-label">查看详情</span>
+            </summary>
             <div class="experience-block">
               <h4>全身遥操作与运动重定向</h4>
               <p>为了让人形机器人跟随操作者的动作，我基于 Mink 逆运动学工具，将 VR 设备采集的人体骨架运动转换为机器人全身关节目标。这一过程称为运动重定向，需要适应人体与机器人的尺寸和关节结构差异；逆运动学（IK）则用于从目标位置和姿态求解关节配置。我还修复了 ROS 2 异步消息处理中因访问顺序和时间不一致引起的问题，并完善 Pico 设备的离线数据采集、人体标定与预处理工具。</p>
             </div>
             <div class="experience-block">
-              <h4>基于强化学习的全身运动跟踪</h4>
-              <p>目标是让同一个控制模型跟踪多种参考动作，并适应遥操作设备的输入噪声。我基于 mjlab 搭建训练流程，参考 Humanoid-GPT，先将相似动作分组，为每组训练一个专门的控制策略，再通过 DAgger（数据集聚合）让统一模型学习这些策略给出的动作。分组采用 Humanoid-GPT 提出的 HME（Harmonic Motion Embedding）动作表示，用特征向量描述动作并比较相似程度。针对 Pico 等设备的噪声输入，结合 MOSAIC 的残差适配方法，在通用模型上学习额外的修正量。</p>
+              <h4>通用全身 RL Motion Tracker</h4>
+              <p>为了让同一个控制模型跟踪多种参考动作，我基于 mjlab 搭建全身运动跟踪训练链路，参考 Humanoid-GPT，使用 HME（Harmonic Motion Embedding）特征表示动作，并通过 K-Means 将相似动作分组。每个动作簇训练一个 PPO 专家策略（cluster expert），再通过 DAgger（数据集聚合）在学生策略访问的状态上查询对应专家、聚合监督数据，蒸馏得到统一的运动跟踪策略。</p>
+              <p>观察到相近动作簇之间的参数迁移可以加快收敛后，我利用已训练模型暖启动相邻簇，并用 CP-SAT 联合规划训练顺序与初始化来源，在理论最少训练批次数的约束下，最小化跨簇迁移的 HME 距离。</p>
+              <figure class="project-flow">
+                <button type="button" aria-haspopup="dialog" data-image-src="assets/pnd/hme-cpsat-dagger-pipeline.svg?v=2" aria-label="放大全身运动跟踪训练流程图">
+                  <img src="assets/pnd/hme-cpsat-dagger-pipeline.svg?v=2" width="1946" height="780" alt="动作数据经 HME 编码与聚类，由 CP-SAT 规划专家暖启动依赖，再通过多教师 DAgger 蒸馏为统一策略" loading="lazy" />
+                </button>
+                <figcaption>训练流程总览 · 点击放大。图中 14 个动作簇及以 C1、C14 为根的温启动森林为示意，实际根节点数量由求解结果决定；散点并非真实实验投影，实际调度还需满足 GPU 容量与训练依赖约束。</figcaption>
+              </figure>
             </div>
             <div class="experience-block">
               <h4>PPO 专家策略的参数复用与多 GPU 训练调度</h4>
@@ -136,7 +150,48 @@
                 </div>
               </details>
             </div>
-          </div>
+            <div class="experience-block">
+              <h4>Transformer 策略模型结构优化</h4>
+              <p>针对机器人历史状态与未来目标运动的联合建模需求，我重新设计了双流时序 Actor–Critic：机器人观测历史与参考动作分别逐帧嵌入，通过因果 Self-Attention 建模历史状态，再用 Cross-Attention 读取目标运动序列。历史窗口包含过去 10 帧与当前帧，参考动作窗口包含过去 10 帧、当前帧及未来 10 帧目标，让策略同时利用运动上下文与未来目标信息。</p>
+              <p>两个 Fusion Block 顺序融合两路信息。第一个模块更新全部 11 个历史 token；第二个模块仅为当前 token 计算查询和后续输出，裁剪不会进入输出头的末端计算，同时仍读取完整的 11 帧历史与 21 帧参考动作 K/V，在利用更长时间信息的同时控制计算开销。</p>
+              <figure class="project-flow">
+                <button type="button" aria-haspopup="dialog" data-image-src="assets/pnd/model-architecture-v5-zh.svg" aria-label="放大双流时序 Actor–Critic 模型结构图">
+                  <img src="assets/pnd/model-architecture-v5-zh.svg" width="2600" height="2080" alt="双流时序 Actor–Critic：11 帧机器人观测与 21 帧参考动作，通过两个含因果自注意力和交叉注意力的 Fusion Block 融合；第二个模块仅计算当前查询" loading="lazy" />
+                </button>
+                <figcaption>双流时序 Actor–Critic · 点击放大查看结构细节。Actor 与 Critic 结构相同、参数独立，分别输出 29 维动作均值和 1 维状态价值。</figcaption>
+              </figure>
+              <details>
+                <summary>输入、注意力融合与末端计算裁剪</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>逐帧保留时序信息</h5>
+                  <p>Actor 的机器人观测输入为 11 × 93，Critic 为 11 × 219；参考动作输入均为 21 × 67（帧数 × 每帧特征数）。参考动作表示需要跟踪的目标运动，包含未来目标，不是机器人此前执行的控制动作。两路输入分别映射为逐帧 token，没有时间池化。</p>
+                  <h5>先理解历史状态，再读取参考动作</h5>
+                  <p>每个 Fusion Block 包含因果 Self-Attention、Cross-Attention 和前馈网络（FFN），并配合残差连接。Cross-Attention 的 Q 来自自注意力更新后的历史 token，K/V 来自参考动作 token；RoPE（旋转位置编码）作用于 Q 和 K。同一组参考动作 embedding 送入两个模块，模块各自具有独立的归一化与投影参数。</p>
+                  <h5>只省去不被输出头使用的计算</h5>
+                  <p>Fusion Block 1 保留全部历史 token 的输出；Fusion Block 2 仅计算当前 token 的 Self-Attention 查询、Cross-Attention 查询及 FFN 输出。两个模块的 Self-Attention 仍读取全部历史 K/V，Cross-Attention 仍读取全部参考动作 K/V，因此没有缩短可读取的历史或目标窗口。</p>
+                </div>
+              </details>
+            </div>
+            <div class="experience-block">
+              <h4>模型训练性能优化：RoPE 融合与短序列 Attention</h4>
+              <p>基于 PyTorch Profiler，我定位了双流时序 Transformer 在 PPO 训练中的两处 GPU 开销：RoPE 多步运算产生的中间张量读写，以及通用 Attention 内核对短序列形状的适配不足。使用 Triton 开发融合 RoPE 和专用 Attention 的前后向算子，并对齐原后端的关键浮点运算顺序，解决局部数值误差在完整训练更新中放大的问题。</p>
+              <p>在 RTX PRO 6000 Blackwell 的真实环境基准中，保持模型结构、精度策略和 PPO 配置不变，<strong>PPO 更新耗时从 3.2139 秒降至 1.6718 秒，减少 48.0%；采样与更新合计从 4.5597 秒降至 2.9826 秒，减少 34.6%，迭代吞吐约为原来的 1.53 倍。</strong>测量不包含日志写盘、周期评估、checkpoint 保存和状态重置。</p>
+              <details>
+                <summary>性能瓶颈、内核实现与数值验收</summary>
+                <div class="detail-content technical-narrative">
+                  <h5>融合 RoPE，减少中间显存访问</h5>
+                  <p>将特征配对、正余弦乘法与旋转加减合并到 Triton kernel，并实现融合反向，通过自定义 torch.autograd.Function 接入原训练流程。保留原 FP32 运算顺序，减少中间结果反复写回与读取。独立消融中，仅缓存正余弦表的收益约为 0.12%，主要加速来自融合执行。</p>
+                  <h5>针对实际短序列设计 Attention 前后向</h5>
+                  <p>两个 Fusion Block 的注意力形状分别为 11×11、11×21、1×11 和 1×21，每个 head 宽度为 32。我采用适合这些形状的小分块，并实现 Q/K/V 梯度和实际张量布局处理。在同一实际 PPO minibatch 的 profiler 对照中，Attention 前后向主 kernel 总耗时从 46.850 ms 降到 13.244 ms。</p>
+                  <h5>从数学等价走到训练数值一致</h5>
+                  <p>初版内核虽有加速，但局部微小误差在后续 TF32 线性层中放大，未通过 AdamW 状态验收。进一步核对原后端的 FastF32 路径，匹配操作数拆分与舍入、三次 TF32 矩阵乘累加、分段归约，以及 softmax 前后向的关键计算顺序，最终在既定误差门槛下通过完整训练更新验收。</p>
+                  <h5>真实 rollout 与完整 PPO 更新验证</h5>
+                  <p>使用 2048 个环境、24 步 rollout 和 5 epochs × 4 minibatches，让基线与优化版从相同模型及优化器状态出发，使用同一份真实 on-policy 数据更新。在已测样例中，完整模型输出与梯度、20 次优化器更新后的 4 项 loss、129 个参数及 387 个 AdamW 状态张量记录的最大绝对差均为 0，自适应学习率决策一致；另通过 48 项布局、部分梯度及重复运行测试。</p>
+                  <p>性能收益来自预热后的稳定测量；上述 20 次优化器更新对应一次完整 PPO 更新过程。验收结果限于已测硬件、FP32/原 TF32 设置与既定短序列形状，不等同于长期训练轨迹或最终收敛已经验证一致。</p>
+                </div>
+              </details>
+            </div>
+          </details>
         </article>
       </div>
     </section>
